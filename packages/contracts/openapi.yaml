@@ -238,11 +238,31 @@ paths:
       summary: List audit events, newest first.
       description: >
         A Support Operator sees every event and may filter by tenant. A Program Admin
-        only sees their own tenant's events.
+        only sees their own tenant's events. All filters combine (AND).
       parameters:
         - name: tenantId
           in: query
           schema: { type: string }
+        - name: actorId
+          in: query
+          description: Only events by this actor (persona id).
+          schema: { type: string }
+        - name: action
+          in: query
+          description: Exact action, e.g. `tenant.suspended`.
+          schema: { type: string }
+        - name: entity
+          in: query
+          description: Exact entity type, e.g. `category`.
+          schema: { type: string }
+        - name: from
+          in: query
+          description: Only events at or after this instant.
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          description: Only events at or before this instant.
+          schema: { type: string, format: date-time }
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -252,8 +272,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuditEventPage'
+        '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
         '403': { $ref: '#/components/responses/Problem' }
+        '422':
+          description: An invalid date, or `from` after `to`.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
 
   /demo/personas:
     get:

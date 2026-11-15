@@ -154,7 +154,7 @@ export interface paths {
         };
         /**
          * List audit events, newest first.
-         * @description A Support Operator sees every event and may filter by tenant. A Program Admin only sees their own tenant's events.
+         * @description A Support Operator sees every event and may filter by tenant. A Program Admin only sees their own tenant's events. All filters combine (AND).
          */
         get: operations["listAuditEvents"];
         put?: never;
@@ -736,6 +736,16 @@ export interface operations {
         parameters: {
             query?: {
                 tenantId?: string;
+                /** @description Only events by this actor (persona id). */
+                actorId?: string;
+                /** @description Exact action, e.g. `tenant.suspended`. */
+                action?: string;
+                /** @description Exact entity type, e.g. `category`. */
+                entity?: string;
+                /** @description Only events at or after this instant. */
+                from?: string;
+                /** @description Only events at or before this instant. */
+                to?: string;
                 /** @description Opaque cursor from a previous page's `nextCursor`. */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -755,8 +765,18 @@ export interface operations {
                     "application/json": components["schemas"]["AuditEventPage"];
                 };
             };
+            400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
             403: components["responses"]["Problem"];
+            /** @description An invalid date, or `from` after `to`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     listPersonas: {
