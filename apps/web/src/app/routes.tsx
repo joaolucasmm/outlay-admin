@@ -4,6 +4,7 @@ import { Navigate, type RouteObject } from 'react-router';
 import { AppLayout } from './layout/AppLayout';
 import { TenantScope } from './layout/TenantScope';
 import { useAppSelector } from './store';
+import { AuditPage } from '../features/audit/pages/AuditPage';
 import { CategoriesPage } from '../features/categories/pages/CategoriesPage';
 import { EmployeesPage } from '../features/employees/pages/EmployeesPage';
 import { OnboardingPage } from '../features/onboarding/pages/OnboardingPage';
@@ -43,7 +44,7 @@ export const routes: RouteObject[] = [
           { path: 'policies', element: guard('tenant:configure', <PoliciesPage />) },
           { path: 'employees', element: guard('tenant:configure', <EmployeesPage />) },
           { path: 'receipts', element: guard('tenant:configure', placeholder('Receipts', 'M5')) },
-          { path: 'audit', element: guard('audit:read', placeholder('Audit log', 'M4')) },
+          { path: 'audit', element: guard('audit:read', <AuditPage />) },
         ],
       },
       { path: '*', element: <PlaceholderPage title="Page not found" /> },
