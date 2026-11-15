@@ -25,6 +25,26 @@ _Avoid_: Delete, remove
 An immutable record that an actor changed something, with what it looked like before and after.
 _Avoid_: Log entry, history item
 
+### Expense program
+
+**Expense Category**:
+A kind of spending a Tenant reimburses (Meals, Travel…), identified by a code that never changes. Categories are deactivated, never deleted.
+_Avoid_: Expense type, delete (for categories)
+
+**Policy Rule**:
+The spending rule for one Expense Category and one Employee Role: the limit per expense, the amount above which a receipt is required, and how many approval levels it needs. No rule for a pair means the category is not allowed for that role.
+_Avoid_: Policy (alone), limit (for the whole rule)
+
+**Policy Grid**:
+All of a Tenant's Policy Rules, laid out category × Employee Role and saved as one unit.
+
+**Expense**:
+A reviewed spending claim (amount, currency and whether a readable receipt is attached) that the policy engine judges. It is built after the user checks the receipt extraction.
+_Avoid_: Receipt (the receipt is evidence, not the expense)
+
+**Policy Check**:
+The engine's verdict on an Expense: compliant, needs approval or violation, with one finding per check that explains it.
+
 ### People and access
 
 **Admin Role**:

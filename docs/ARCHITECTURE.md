@@ -154,14 +154,16 @@ stateDiagram-v2
 
 ### Policy engine (`checkExpense`)
 
-Input: `{ extraction, categoryCode, employeeRole, rules }`. Output: `PolicyCheckResult`.
+Input: `{ expense, categoryCode, employeeRole, tenantCurrency, categories, rules }`, where `expense` is a reviewed **Expense** (`amountMinor`, `currency`, `receipt: readable | unreadable | missing`), never the raw extraction ([ADR 0003](adr/0003-policy-engine-judges-a-reviewed-expense.md)). Output: `PolicyCheckResult`. Money in messages is formatted by an injected `formatMoney`.
 
-Rules, in order:
-1. The category is unknown or inactive → `violation`.
-2. The amount is above the role limit → `violation`.
-3. The receipt is missing or unreadable (`low` confidence) and the amount is above the receipt threshold → `violation`.
-4. `approvalLevels > 0` → `needs_approval`.
-5. Otherwise → `compliant`.
+Checks, in order (all applicable checks run; the worst severity decides the status):
+1. The expense currency differs from the tenant currency → `violation` (amount checks are skipped).
+2. The category is unknown (stop) or inactive → `violation`.
+3. There is no rule for the category × Employee Role → `violation` (`no_policy`, stop).
+4. The amount is above the role limit → `violation`.
+5. The amount is above the receipt threshold and the receipt is missing or unreadable → `violation`.
+6. `approvalLevels > 0` → `needs_approval`.
+7. Otherwise → `compliant`.
 
 Each rule produces an explainable finding. The engine has 100% branch coverage.
 
