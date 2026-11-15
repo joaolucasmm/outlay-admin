@@ -174,7 +174,7 @@ Each rule produces an explainable finding. The engine has 100% branch coverage.
 | `support_operator` (vendor side) | all tenants | list, create and onboard tenants, run lifecycle actions, view all audit logs |
 | `program_admin` (customer side) | one tenant | manage categories, policies and employees, check receipts, view their own audit log |
 
-A role switcher in the header (demo only) changes the session in the Redux `session` slice. Route guards and the `can(permission)` helper read from it, and the mock backend enforces the same rules (it returns 403).
+There is no real login in the demo: a "Signed in as" **persona** picker in the header (the Support Operator, or the Program Admin of one tenant) sets the Redux `session` slice, and the persona id travels to the backend in an `X-Demo-Persona` header (see [ADR 0002](adr/0002-demo-personas-instead-of-a-role-switcher.md)). The permission table lives in `packages/domain` (`can(role, permission)`): route guards use it in the UI, and the mock backend enforces the same table (403) and scopes data to the persona's tenant.
 
 ---
 
@@ -190,7 +190,7 @@ apps/web/src/
 │   ├── router.tsx            # routes + guards
 │   └── providers.tsx
 ├── features/
-│   ├── session/              # slice: currentRole, currentTenantId, can()
+│   ├── session/              # slice: persona, currentTenantId; useCan(), guards
 │   ├── tenants/              # list, detail, lifecycle actions
 │   ├── onboarding/           # wizard + draft slice (persisted)
 │   ├── categories/
@@ -245,7 +245,7 @@ The draft lives in the `onboarding` slice and is persisted to localStorage, so a
 
 ## 6. Contracts (`packages/contracts`)
 
-- `openapi.yaml` (OpenAPI 3.1) under `/api/v1`: tenants (+ `POST /tenants/{id}/transitions`), categories, policies, employees (+ `POST /employees:import`), audit-events. Plus the AI service: `POST /v1/receipts/extract`.
+- `openapi.yaml` (OpenAPI 3.1) under `/api/v1`: tenants (+ `POST /tenants/{id}/transitions`), demo personas and reset (mock only), categories, policies, employees (+ `POST /employees:import`), audit-events. Plus the AI service: `POST /v1/receipts/extract`.
 - Errors use RFC 9457 Problem Details (`type`, `title`, `status`, `detail`, `errors[]`).
 - List endpoints use cursor pagination (`?cursor=&limit=`) and return `{ items, nextCursor }`.
 - `pnpm --filter contracts generate` runs `openapi-typescript`, and the output is committed. CI fails if the generated file is stale.
