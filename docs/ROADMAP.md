@@ -18,11 +18,11 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] Audit events emitted on transitions
 
 ## M2 — Categories & policies (~3–4h)
-- [ ] Contract + handlers for categories and policies
-- [ ] `/categories`: CRUD, optimistic active toggle with rollback
-- [ ] `/policies`: category × role grid, inline edit, zod validation, unsaved-changes guard
-- [ ] `packages/domain`: `checkExpense` policy engine + tests
-- [ ] Money formatting through `Intl.NumberFormat` using the tenant currency
+- [x] Contract + handlers for categories and policies
+- [x] `/categories`: CRUD, optimistic active toggle with rollback
+- [x] `/policies`: category × role grid, inline edit, zod validation, unsaved-changes guard
+- [x] `packages/domain`: `checkExpense` policy engine + tests
+- [x] Money formatting through `Intl.NumberFormat` using the tenant currency
 
 ## M3 — Onboarding wizard & employees (~3–4h)
 - [ ] Wizard with 5 steps; draft in a persisted slice; per-step validation
