@@ -115,6 +115,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tenants/{tenantId}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        /** List the tenant's expense categories, sorted by code. */
+        get: operations["listCategories"];
+        put?: never;
+        /** Create an expense category. Emits `category.created`. */
+        post: operations["createCategory"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/{tenantId}/categories/{categoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Rename, change the GL account, or (de)activate a category. Emits `category.updated`.
+         * @description Categories are never deleted; deactivating is the soft delete.
+         */
+        patch: operations["updateCategory"];
+        trace?: never;
+    };
+    "/tenants/{tenantId}/policy-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        /** The tenant's whole category × Employee Role policy grid. */
+        get: operations["getPolicyRules"];
+        /**
+         * Replace the whole policy grid atomically. Emits one `policy.updated` event.
+         * @description A (category, Employee Role) pair without a rule means the category is not allowed for that role.
+         */
+        put: operations["replacePolicyRules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/demo/reset": {
         parameters: {
             query?: never;
@@ -205,6 +271,69 @@ export interface components {
             role: components["schemas"]["AdminRole"];
             /** @description The Program Admin's tenant; null for the Support Operator. */
             tenantId: string | null;
+        };
+        /** @enum {string} */
+        EmployeeRole: "employee" | "manager" | "director";
+        ExpenseCategory: {
+            id: string;
+            tenantId: string;
+            /** @description Stable, unique per tenant, never changes. Used by receipt extraction. */
+            code: string;
+            name: string;
+            /** @description General-ledger account for accounting exports. */
+            glAccount: string | null;
+            active: boolean;
+        };
+        CategoryPage: {
+            items: components["schemas"]["ExpenseCategory"][];
+            nextCursor: string | null;
+        };
+        CategoryCreate: {
+            code: string;
+            name: string;
+            glAccount?: string | null;
+        };
+        CategoryUpdate: {
+            name?: string;
+            glAccount?: string | null;
+            active?: boolean;
+        };
+        /**
+         * @description 0 means auto-approved.
+         * @enum {integer}
+         */
+        ApprovalLevels: 0 | 1 | 2;
+        PolicyRuleInput: {
+            categoryId: string;
+            role: components["schemas"]["EmployeeRole"];
+            /** @description Maximum per expense, in minor units of the tenant currency. */
+            limitMinor: number;
+            /** @description A receipt is mandatory above this amount. Must not exceed the limit. */
+            receiptRequiredAboveMinor: number;
+            approvalLevels: components["schemas"]["ApprovalLevels"];
+        };
+        PolicyRule: components["schemas"]["PolicyRuleInput"] & {
+            id: string;
+            tenantId: string;
+        };
+        PolicyRuleSet: {
+            items: components["schemas"]["PolicyRule"][];
+        };
+        PolicyRulesReplace: {
+            rules: components["schemas"]["PolicyRuleInput"][];
+        };
+        /** @enum {string} */
+        FindingSeverity: "info" | "warn" | "error";
+        PolicyFinding: {
+            code: string;
+            message: string;
+            severity: components["schemas"]["FindingSeverity"];
+        };
+        PolicyCheckResult: {
+            /** @enum {string} */
+            status: "compliant" | "needs_approval" | "violation";
+            findings: components["schemas"]["PolicyFinding"][];
+            requiredApprovalLevels: components["schemas"]["ApprovalLevels"];
         };
         Problem: {
             type: string;
@@ -413,6 +542,162 @@ export interface operations {
                     "application/json": components["schemas"]["Persona"][];
                 };
             };
+        };
+    };
+    listCategories: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from a previous page's `nextCursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of categories. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    createCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreate"];
+            };
+        };
+        responses: {
+            /** @description The new category. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseCategory"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            /** @description The tenant is not active, or the code is already used. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Problem"];
+        };
+    };
+    updateCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+                categoryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryUpdate"];
+            };
+        };
+        responses: {
+            /** @description The updated category. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseCategory"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    getPolicyRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every policy rule of the tenant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyRuleSet"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    replacePolicyRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyRulesReplace"];
+            };
+        };
+        responses: {
+            /** @description The saved policy grid. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyRuleSet"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
         };
     };
     resetDemo: {

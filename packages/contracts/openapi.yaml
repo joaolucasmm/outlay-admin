@@ -12,6 +12,8 @@ tags:
   - name: system
   - name: tenants
   - name: audit
+  - name: program
+    description: A tenant's expense program (categories and policy rules). Program Admin only.
   - name: demo
     description: Demo-only endpoints. Implemented by the mock backend, never by a real service.
 security:
@@ -152,6 +154,127 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Persona'
+
+  /tenants/{tenantId}/categories:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    get:
+      tags: [program]
+      operationId: listCategories
+      summary: List the tenant's expense categories, sorted by code.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of categories.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryPage'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [program]
+      operationId: createCategory
+      summary: Create an expense category. Emits `category.created`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+      responses:
+        '201':
+          description: The new category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCategory'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: The tenant is not active, or the code is already used.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+
+  /tenants/{tenantId}/categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+      - name: categoryId
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [program]
+      operationId: updateCategory
+      summary: Rename, change the GL account, or (de)activate a category. Emits `category.updated`.
+      description: Categories are never deleted; deactivating is the soft delete.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+      responses:
+        '200':
+          description: The updated category.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCategory'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+
+  /tenants/{tenantId}/policy-rules:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    get:
+      tags: [program]
+      operationId: getPolicyRules
+      summary: The tenant's whole category × Employee Role policy grid.
+      responses:
+        '200':
+          description: Every policy rule of the tenant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyRuleSet'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+    put:
+      tags: [program]
+      operationId: replacePolicyRules
+      summary: Replace the whole policy grid atomically. Emits one `policy.updated` event.
+      description: >
+        A (category, Employee Role) pair without a rule means the category is not
+        allowed for that role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyRulesReplace'
+      responses:
+        '200':
+          description: The saved policy grid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyRuleSet'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
 
   /demo/reset:
     post:
@@ -310,6 +433,133 @@ components:
         tenantId:
           type: [string, 'null']
           description: The Program Admin's tenant; null for the Support Operator.
+
+    EmployeeRole:
+      type: string
+      enum: [employee, manager, director]
+
+    ExpenseCategory:
+      type: object
+      required: [id, tenantId, code, name, glAccount, active]
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        code:
+          type: string
+          pattern: '^[A-Z][A-Z0-9_]{1,19}$'
+          description: Stable, unique per tenant, never changes. Used by receipt extraction.
+        name: { type: string, minLength: 1, maxLength: 60 }
+        glAccount:
+          type: [string, 'null']
+          maxLength: 20
+          description: General-ledger account for accounting exports.
+        active: { type: boolean }
+
+    CategoryPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ExpenseCategory' }
+        nextCursor:
+          type: [string, 'null']
+
+    CategoryCreate:
+      type: object
+      required: [code, name]
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z][A-Z0-9_]{1,19}$'
+        name: { type: string, minLength: 1, maxLength: 60 }
+        glAccount:
+          type: [string, 'null']
+          maxLength: 20
+
+    CategoryUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1, maxLength: 60 }
+        glAccount:
+          type: [string, 'null']
+          maxLength: 20
+        active: { type: boolean }
+
+    ApprovalLevels:
+      type: integer
+      enum: [0, 1, 2]
+      description: 0 means auto-approved.
+
+    PolicyRuleInput:
+      type: object
+      required: [categoryId, role, limitMinor, receiptRequiredAboveMinor, approvalLevels]
+      properties:
+        categoryId: { type: string }
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        limitMinor:
+          type: integer
+          minimum: 0
+          description: Maximum per expense, in minor units of the tenant currency.
+        receiptRequiredAboveMinor:
+          type: integer
+          minimum: 0
+          description: A receipt is mandatory above this amount. Must not exceed the limit.
+        approvalLevels:
+          $ref: '#/components/schemas/ApprovalLevels'
+
+    PolicyRule:
+      allOf:
+        - $ref: '#/components/schemas/PolicyRuleInput'
+        - type: object
+          required: [id, tenantId]
+          properties:
+            id: { type: string }
+            tenantId: { type: string }
+
+    PolicyRuleSet:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PolicyRule' }
+
+    PolicyRulesReplace:
+      type: object
+      required: [rules]
+      properties:
+        rules:
+          type: array
+          items: { $ref: '#/components/schemas/PolicyRuleInput' }
+
+    FindingSeverity:
+      type: string
+      enum: [info, warn, error]
+
+    PolicyFinding:
+      type: object
+      required: [code, message, severity]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        severity:
+          $ref: '#/components/schemas/FindingSeverity'
+
+    PolicyCheckResult:
+      type: object
+      required: [status, findings, requiredApprovalLevels]
+      properties:
+        status:
+          type: string
+          enum: [compliant, needs_approval, violation]
+        findings:
+          type: array
+          items: { $ref: '#/components/schemas/PolicyFinding' }
+        requiredApprovalLevels:
+          $ref: '#/components/schemas/ApprovalLevels'
 
     Problem:
       type: object
