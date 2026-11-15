@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist/
+coverage/
+services/
+packages/contracts/src/generated/
+apps/web/public/mockServiceWorker.js
+docs/
+CLAUDE.md
