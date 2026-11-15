@@ -22,6 +22,11 @@ const tenantsApi = api.injectEndpoints({
       ],
     }),
 
+    getTenant: build.query<Tenant, string>({
+      query: (tenantId) => `tenants/${encodeURIComponent(tenantId)}`,
+      providesTags: (_result, _error, tenantId) => [{ type: 'Tenant', id: tenantId }],
+    }),
+
     transitionTenant: build.mutation<Tenant, { tenantId: string; command: LifecycleCommand }>({
       query: ({ tenantId, command }) => ({
         url: `tenants/${encodeURIComponent(tenantId)}/transitions`,
@@ -38,4 +43,5 @@ const tenantsApi = api.injectEndpoints({
   }),
 });
 
-export const { useGetTenantsInfiniteQuery, useTransitionTenantMutation } = tenantsApi;
+export const { useGetTenantsInfiniteQuery, useGetTenantQuery, useTransitionTenantMutation } =
+  tenantsApi;
