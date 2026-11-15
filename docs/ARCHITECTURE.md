@@ -222,7 +222,7 @@ apps/web/src/
 | `/t/:tenantId/policies` | admin | grid of category × role with limits, receipt threshold and approval levels; inline edit with dirty-state warning |
 | `/t/:tenantId/employees` | admin | table + CSV import |
 | `/t/:tenantId/receipts` | admin | upload receipt → extracted fields (editable) → policy check result |
-| `/t/:tenantId/audit` | both | filterable audit log with before/after diff |
+| `/t/:tenantId/audit` | both | audit log filtered by actor, action, entity and date range (filters live in the URL); a side drawer shows the before/after diff with readable labels and money in the tenant currency |
 
 ### Onboarding wizard
 
@@ -249,7 +249,7 @@ The draft lives in the `onboarding` slice and is persisted to localStorage, so a
 
 ## 6. Contracts (`packages/contracts`)
 
-- `openapi.yaml` (OpenAPI 3.1) under `/api/v1`: tenants (+ `POST /tenants/{id}/transitions`), demo personas and reset (mock only), categories, policies, onboarding (`POST /tenants`, `POST /tenants/{id}/program:apply-template`), employees (+ `POST /tenants/{id}/employees:import`), audit-events. Plus the AI service: `POST /v1/receipts/extract`.
+- `openapi.yaml` (OpenAPI 3.1) under `/api/v1`: tenants (+ `POST /tenants/{id}/transitions`), demo personas and reset (mock only), categories, policies, onboarding (`POST /tenants`, `POST /tenants/{id}/program:apply-template`), employees (+ `POST /tenants/{id}/employees:import`), audit-events (filters: `actorId`, `action`, `entity`, `from`, `to`). Plus the AI service: `POST /v1/receipts/extract`.
 - Errors use RFC 9457 Problem Details (`type`, `title`, `status`, `detail`, `errors[]`).
 - List endpoints use cursor pagination (`?cursor=&limit=`) and return `{ items, nextCursor }`.
 - `pnpm --filter contracts generate` runs `openapi-typescript`, and the output is committed. CI fails if the generated file is stale.

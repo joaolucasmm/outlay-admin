@@ -31,7 +31,7 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] `/employees` table
 
 ## M4 — Audit log (~1h)
-- [ ] `/audit`: filters (actor, action, entity, date), before/after JSON diff panel
+- [x] `/audit`: filters (actor, action, entity, date), before/after JSON diff panel
 
 ## M5 — AI receipt extraction (~3–4h)
 - [ ] FastAPI `POST /v1/receipts/extract`, Pydantic schema, LLM client interface + Anthropic implementation
