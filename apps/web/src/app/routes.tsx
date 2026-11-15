@@ -4,6 +4,8 @@ import { Navigate, type RouteObject } from 'react-router';
 import { AppLayout } from './layout/AppLayout';
 import { TenantScope } from './layout/TenantScope';
 import { useAppSelector } from './store';
+import { CategoriesPage } from '../features/categories/pages/CategoriesPage';
+import { PoliciesPage } from '../features/policies/pages/PoliciesPage';
 import { RequirePermission } from '../features/session/components/RequirePermission';
 import { homePathFor } from '../features/session/navigation';
 import { selectPersona } from '../features/session/sessionSlice';
@@ -34,11 +36,8 @@ export const routes: RouteObject[] = [
         path: 't/:tenantId',
         element: <TenantScope />,
         children: [
-          {
-            path: 'categories',
-            element: guard('tenant:configure', placeholder('Categories', 'M2')),
-          },
-          { path: 'policies', element: guard('tenant:configure', placeholder('Policies', 'M2')) },
+          { path: 'categories', element: guard('tenant:configure', <CategoriesPage />) },
+          { path: 'policies', element: guard('tenant:configure', <PoliciesPage />) },
           {
             path: 'employees',
             element: guard('tenant:configure', placeholder('Employees', 'M3')),
