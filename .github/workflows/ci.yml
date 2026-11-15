@@ -24,6 +24,10 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Contract types are up to date
+        run: |
+          pnpm --filter contracts generate
+          git diff --exit-code -- packages/contracts/src/generated
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
