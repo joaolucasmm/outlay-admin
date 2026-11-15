@@ -4,6 +4,8 @@ import { matchPath } from 'react-router';
 export interface NavItem {
   label: string;
   to: string;
+  /** Also active on sub-paths (e.g. every onboarding step). */
+  matchSubpaths?: boolean;
 }
 
 export const homePathFor = (persona: Persona): string =>
@@ -13,7 +15,7 @@ export const navItemsFor = (persona: Persona, currentTenantId: string | null): N
   if (persona.role === 'support_operator') {
     return [
       { label: 'Tenants', to: '/tenants' },
-      { label: 'New tenant', to: '/tenants/new' },
+      { label: 'New tenant', to: '/tenants/new', matchSubpaths: true },
       ...(currentTenantId ? [{ label: 'Audit log', to: `/t/${currentTenantId}/audit` }] : []),
     ];
   }

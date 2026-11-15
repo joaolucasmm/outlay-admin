@@ -1,11 +1,13 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector } from 'react-redux';
 import { api } from './api';
+import { onboardingSlice } from '../features/onboarding/onboardingSlice';
 import { sessionSlice } from '../features/session/sessionSlice';
 
 const rootReducer = combineReducers({
   [api.reducerPath]: api.reducer,
   [sessionSlice.reducerPath]: sessionSlice.reducer,
+  [onboardingSlice.reducerPath]: onboardingSlice.reducer,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;

@@ -1,4 +1,13 @@
-import type { LifecycleCommand, ListTenantsQuery, Tenant, TenantPage } from 'contracts';
+import type {
+  ApplyTemplate,
+  CategoryTemplateId,
+  LifecycleCommand,
+  ListTenantsQuery,
+  Tenant,
+  TenantCreate,
+  TenantPage,
+  TemplateResult,
+} from 'contracts';
 import { api } from '../../app/api';
 
 export type TenantListArgs = Pick<ListTenantsQuery, 'q' | 'status' | 'limit'>;
@@ -27,6 +36,29 @@ const tenantsApi = api.injectEndpoints({
       providesTags: (_result, _error, tenantId) => [{ type: 'Tenant', id: tenantId }],
     }),
 
+    /** One-off lookup (e.g. "is this name taken?"), separate from the paginated list cache. */
+    searchTenants: build.query<TenantPage, TenantListArgs>({
+      query: (params) => ({ url: 'tenants', params }),
+      keepUnusedDataFor: 0,
+    }),
+
+    createTenant: build.mutation<Tenant, TenantCreate>({
+      query: (body) => ({ url: 'tenants', method: 'POST', body }),
+      invalidatesTags: (result) => (result ? [{ type: 'Tenant', id: 'LIST' }, 'Audit'] : []),
+    }),
+
+    applyCategoryTemplate: build.mutation<
+      TemplateResult,
+      { tenantId: string; templateId: CategoryTemplateId }
+    >({
+      query: ({ tenantId, templateId }) => ({
+        url: `tenants/${encodeURIComponent(tenantId)}/program:apply-template`,
+        method: 'POST',
+        body: { templateId } satisfies ApplyTemplate,
+      }),
+      invalidatesTags: (result) => (result ? ['Category', 'Policy', 'Audit'] : []),
+    }),
+
     transitionTenant: build.mutation<Tenant, { tenantId: string; command: LifecycleCommand }>({
       query: ({ tenantId, command }) => ({
         url: `tenants/${encodeURIComponent(tenantId)}/transitions`,
@@ -43,5 +75,11 @@ const tenantsApi = api.injectEndpoints({
   }),
 });
 
-export const { useGetTenantsInfiniteQuery, useGetTenantQuery, useTransitionTenantMutation } =
-  tenantsApi;
+export const {
+  useGetTenantsInfiniteQuery,
+  useGetTenantQuery,
+  useLazySearchTenantsQuery,
+  useCreateTenantMutation,
+  useApplyCategoryTemplateMutation,
+  useTransitionTenantMutation,
+} = tenantsApi;

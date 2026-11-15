@@ -17,7 +17,7 @@ export function Sidebar() {
             <li key={item.to}>
               <NavLink
                 to={item.to}
-                end
+                end={!item.matchSubpaths}
                 className={({ isActive }) =>
                   `block rounded-md px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     isActive

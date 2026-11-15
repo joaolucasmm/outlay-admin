@@ -2,6 +2,7 @@ import { availableActions } from '@outlay/domain';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { LifecycleAction, Tenant, TenantStatus } from 'contracts';
 import { useId, useState } from 'react';
+import { Link } from 'react-router';
 import { useDebouncedValue } from '../../../shared/hooks/useDebouncedValue';
 import { formatDate } from '../../../shared/lib/dates';
 import { Button } from '../../../shared/ui/Button';
@@ -92,11 +93,19 @@ export function TenantsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Tenants</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Every customer company on the platform and where it is in its lifecycle.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Tenants</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Every customer company on the platform and where it is in its lifecycle.
+          </p>
+        </div>
+        <Link
+          to="/tenants/new"
+          className="inline-flex items-center rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white outline-none hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+        >
+          New tenant
+        </Link>
       </div>
 
       <p

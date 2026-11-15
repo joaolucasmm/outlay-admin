@@ -8,6 +8,12 @@ const ACTION_LABELS: Record<string, string> = {
   'tenant.suspended': 'Suspended',
   'tenant.reactivated': 'Reactivated',
   'tenant.deprovisioned': 'Deprovisioned',
+  'tenant.created': 'Created',
+  'program.template_applied': 'Template applied to',
+  'employees.imported': 'Employees imported to',
+  'category.created': 'Category created in',
+  'category.updated': 'Category updated in',
+  'policy.updated': 'Policy updated in',
 };
 
 const reasonOf = (event: AuditEvent): string | null => {
@@ -50,7 +56,7 @@ export function RecentActivity() {
               <li key={event.id} className="text-sm">
                 <p>
                   <span className="font-medium">{ACTION_LABELS[event.action] ?? event.action}</span>{' '}
-                  {names.get(event.entityId) ?? event.entityId}
+                  {names.get(event.tenantId ?? event.entityId) ?? event.entityId}
                 </p>
                 {reason && <p className="text-slate-600">Reason: {reason}</p>}
                 <p className="text-xs text-slate-500">
