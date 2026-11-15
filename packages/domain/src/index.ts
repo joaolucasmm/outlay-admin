@@ -9,3 +9,20 @@ export {
   type TransitionError,
   type TransitionOutcome,
 } from './lifecycle';
+export { fromMinor, toMinor, type MoneyInputError } from './money';
+export { canEditProgram } from './tenantAccess';
+export {
+  CATEGORY_CODE_PATTERN,
+  validateCategoryFields,
+  type CategoryFields,
+  type FieldError,
+} from './category';
+export {
+  checkExpense,
+  EMPLOYEE_ROLES,
+  validatePolicyRule,
+  type CheckExpenseInput,
+  type CheckExpenseOptions,
+  type Expense,
+  type PolicyRuleFields,
+} from './policy';
