@@ -10,12 +10,12 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] `ci.yml` + `deploy.yml`; a hello-world page live on GitHub Pages (https://joaolucasmm.github.io/outlay-admin/)
 
 ## M1 — Contracts, domain, tenants (~2–3h)
-- [ ] `openapi.yaml` for tenants + transitions + audit; type generation; CI staleness check
-- [ ] `packages/domain`: lifecycle state machine + tests (100% branches)
-- [ ] Mock DB with seed data (5–8 tenants in mixed states) and localStorage persistence
-- [ ] `/tenants`: table, search, status filter, status badges, lifecycle action dialogs (deprovision asks you to type the tenant name)
-- [ ] Session slice + `can()` + route guards; the mock returns 403 for a wrong role
-- [ ] Audit events emitted on transitions
+- [x] `openapi.yaml` for tenants + transitions + audit; type generation; CI staleness check
+- [x] `packages/domain`: lifecycle state machine + tests (100% branches)
+- [x] Mock DB with seed data (5–8 tenants in mixed states) and localStorage persistence
+- [x] `/tenants`: table, search, status filter, status badges, lifecycle action dialogs (deprovision asks you to type the tenant name)
+- [x] Session slice + `can()` + route guards; the mock returns 403 for a wrong role
+- [x] Audit events emitted on transitions
 
 ## M2 — Categories & policies (~3–4h)
 - [ ] Contract + handlers for categories and policies
