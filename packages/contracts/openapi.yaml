@@ -1,17 +1,28 @@
 openapi: 3.1.0
 info:
   title: Outlay Admin API
-  version: 0.1.0
+  version: 0.2.0
   description: >
     Contract for the Outlay Admin console. The MSW mock backend and the future
-    tenant API both implement this file. M0 only defines the health check.
+    tenant API both implement this file. Errors use RFC 9457 Problem Details.
+    List endpoints use cursor pagination and return `{ items, nextCursor }`.
 servers:
   - url: /api/v1
+tags:
+  - name: system
+  - name: tenants
+  - name: audit
+  - name: demo
+    description: Demo-only endpoints. Implemented by the mock backend, never by a real service.
+security:
+  - demoPersona: []
 paths:
   /health:
     get:
+      tags: [system]
       operationId: getHealth
       summary: Liveness check for the API (or the mock backend).
+      security: []
       responses:
         '200':
           description: The API is up.
@@ -19,7 +30,170 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
+
+  /tenants:
+    get:
+      tags: [tenants]
+      operationId: listTenants
+      summary: List tenants, sorted by name.
+      description: >
+        A Support Operator sees every tenant. A Program Admin sees only their own tenant.
+      parameters:
+        - name: q
+          in: query
+          description: Case-insensitive substring of the tenant name.
+          schema: { type: string }
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/TenantStatus'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of tenants.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantPage'
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+
+  /tenants/{tenantId}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    get:
+      tags: [tenants]
+      operationId: getTenant
+      responses:
+        '200':
+          description: The tenant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '401': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /tenants/{tenantId}/transitions:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      tags: [tenants]
+      operationId: transitionTenant
+      summary: Run a lifecycle action on a tenant. Emits an audit event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LifecycleCommand'
+      responses:
+        '200':
+          description: The tenant after the transition.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403':
+          description: Only a Support Operator may run lifecycle actions.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: The action is not allowed from the tenant's current status.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422':
+          description: The command is invalid (missing reason, wrong confirmation name).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /audit-events:
+    get:
+      tags: [audit]
+      operationId: listAuditEvents
+      summary: List audit events, newest first.
+      description: >
+        A Support Operator sees every event and may filter by tenant. A Program Admin
+        only sees their own tenant's events.
+      parameters:
+        - name: tenantId
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of audit events.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventPage'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+
+  /demo/personas:
+    get:
+      tags: [demo]
+      operationId: listPersonas
+      summary: Demo identities to sign in as.
+      security: []
+      responses:
+        '200':
+          description: The Support Operator plus one Program Admin per non-deprovisioned tenant.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Persona'
+
+  /demo/reset:
+    post:
+      tags: [demo]
+      operationId: resetDemo
+      summary: Restore the demo data to its seed.
+      security: []
+      responses:
+        '204':
+          description: The demo data was reset.
+
 components:
+  securitySchemes:
+    demoPersona:
+      type: apiKey
+      in: header
+      name: X-Demo-Persona
+      description: Id of the demo persona making the request (see ADR 0002).
+
+  parameters:
+    TenantId:
+      name: tenantId
+      in: path
+      required: true
+      schema: { type: string }
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque cursor from a previous page's `nextCursor`.
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    Problem:
+      description: An error, as RFC 9457 Problem Details.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+
   schemas:
     Health:
       type: object
@@ -32,3 +206,124 @@ components:
           type: string
           enum: [mock, live]
           description: Which backend answered.
+
+    AdminRole:
+      type: string
+      enum: [support_operator, program_admin]
+
+    TenantStatus:
+      type: string
+      enum: [provisioning, active, suspended, deprovisioned]
+
+    Tenant:
+      type: object
+      required: [id, name, country, currency, status, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2 country code.
+        currency:
+          type: string
+          description: ISO 4217 currency code.
+        status:
+          $ref: '#/components/schemas/TenantStatus'
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    TenantPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Tenant' }
+        nextCursor:
+          type: [string, 'null']
+
+    LifecycleAction:
+      type: string
+      enum: [activate, suspend, reactivate, deprovision]
+
+    LifecycleCommand:
+      type: object
+      required: [action]
+      properties:
+        action:
+          $ref: '#/components/schemas/LifecycleAction'
+        reason:
+          type: string
+          description: Required for `suspend`.
+        confirmationName:
+          type: string
+          description: Required for `deprovision`; must equal the tenant name.
+
+    Actor:
+      type: object
+      required: [id, role]
+      properties:
+        id: { type: string }
+        role:
+          $ref: '#/components/schemas/AdminRole'
+
+    AuditEvent:
+      type: object
+      required: [id, tenantId, actor, action, entity, entityId, at]
+      properties:
+        id: { type: string }
+        tenantId:
+          type: [string, 'null']
+        actor:
+          $ref: '#/components/schemas/Actor'
+        action:
+          type: string
+          description: Dotted verb, e.g. `tenant.suspended`.
+        entity:
+          type: string
+          description: Entity type, e.g. `tenant`.
+        entityId: { type: string }
+        before:
+          description: Relevant fields before the change.
+        after:
+          description: Relevant fields after the change.
+        at: { type: string, format: date-time }
+
+    AuditEventPage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEvent' }
+        nextCursor:
+          type: [string, 'null']
+
+    Persona:
+      type: object
+      required: [id, label, role, tenantId]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        role:
+          $ref: '#/components/schemas/AdminRole'
+        tenantId:
+          type: [string, 'null']
+          description: The Program Admin's tenant; null for the Support Operator.
+
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }

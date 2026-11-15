@@ -21,6 +21,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tenants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tenants, sorted by name.
+         * @description A Support Operator sees every tenant. A Program Admin sees only their own tenant.
+         */
+        get: operations["listTenants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/{tenantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        get: operations["getTenant"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/{tenantId}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a lifecycle action on a tenant. Emits an audit event. */
+        post: operations["transitionTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audit events, newest first.
+         * @description A Support Operator sees every event and may filter by tenant. A Program Admin only sees their own tenant's events.
+         */
+        get: operations["listAuditEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demo/personas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Demo identities to sign in as. */
+        get: operations["listPersonas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demo/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore the demo data to its seed. */
+        post: operations["resetDemo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -34,9 +145,95 @@ export interface components {
              */
             mode: "mock" | "live";
         };
+        /** @enum {string} */
+        AdminRole: "support_operator" | "program_admin";
+        /** @enum {string} */
+        TenantStatus: "provisioning" | "active" | "suspended" | "deprovisioned";
+        Tenant: {
+            id: string;
+            name: string;
+            /** @description ISO 3166-1 alpha-2 country code. */
+            country: string;
+            /** @description ISO 4217 currency code. */
+            currency: string;
+            status: components["schemas"]["TenantStatus"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        TenantPage: {
+            items: components["schemas"]["Tenant"][];
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        LifecycleAction: "activate" | "suspend" | "reactivate" | "deprovision";
+        LifecycleCommand: {
+            action: components["schemas"]["LifecycleAction"];
+            /** @description Required for `suspend`. */
+            reason?: string;
+            /** @description Required for `deprovision`; must equal the tenant name. */
+            confirmationName?: string;
+        };
+        Actor: {
+            id: string;
+            role: components["schemas"]["AdminRole"];
+        };
+        AuditEvent: {
+            id: string;
+            tenantId: string | null;
+            actor: components["schemas"]["Actor"];
+            /** @description Dotted verb, e.g. `tenant.suspended`. */
+            action: string;
+            /** @description Entity type, e.g. `tenant`. */
+            entity: string;
+            entityId: string;
+            /** @description Relevant fields before the change. */
+            before?: unknown;
+            /** @description Relevant fields after the change. */
+            after?: unknown;
+            /** Format: date-time */
+            at: string;
+        };
+        AuditEventPage: {
+            items: components["schemas"]["AuditEvent"][];
+            nextCursor: string | null;
+        };
+        Persona: {
+            id: string;
+            label: string;
+            role: components["schemas"]["AdminRole"];
+            /** @description The Program Admin's tenant; null for the Support Operator. */
+            tenantId: string | null;
+        };
+        Problem: {
+            type: string;
+            title: string;
+            status: number;
+            detail?: string;
+            errors?: {
+                field: string;
+                message: string;
+            }[];
+        };
     };
-    responses: never;
-    parameters: never;
+    responses: {
+        /** @description An error, as RFC 9457 Problem Details. */
+        Problem: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+    };
+    parameters: {
+        TenantId: string;
+        /** @description Opaque cursor from a previous page's `nextCursor`. */
+        Cursor: string;
+        Limit: number;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -60,6 +257,179 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Health"];
                 };
+            };
+        };
+    };
+    listTenants: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive substring of the tenant name. */
+                q?: string;
+                status?: components["schemas"]["TenantStatus"];
+                /** @description Opaque cursor from a previous page's `nextCursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of tenants. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+        };
+    };
+    getTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tenant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tenant"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    transitionTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleCommand"];
+            };
+        };
+        responses: {
+            /** @description The tenant after the transition. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tenant"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            /** @description Only a Support Operator may run lifecycle actions. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            404: components["responses"]["Problem"];
+            /** @description The action is not allowed from the tenant's current status. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description The command is invalid (missing reason, wrong confirmation name). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    listAuditEvents: {
+        parameters: {
+            query?: {
+                tenantId?: string;
+                /** @description Opaque cursor from a previous page's `nextCursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of audit events. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEventPage"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+        };
+    };
+    listPersonas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Support Operator plus one Program Admin per non-deprovisioned tenant. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Persona"][];
+                };
+            };
+        };
+    };
+    resetDemo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The demo data was reset. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
