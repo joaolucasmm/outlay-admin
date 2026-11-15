@@ -1,4 +1,10 @@
-import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
+import {
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type ColumnDefTemplate,
+} from '@tanstack/react-table';
+import type { ReactNode } from 'react';
 
 interface DataTableProps<T> {
   /** Accessible name of the table (rendered as a visually hidden caption). */
@@ -6,6 +12,19 @@ interface DataTableProps<T> {
   data: T[];
   columns: ColumnDef<T>[];
   getRowId: (row: T) => string;
+}
+
+/**
+ * Calls a header/cell template as a plain function. TanStack's `flexRender` mounts it
+ * as a component instead, so inline column definitions (new functions every render)
+ * would remount every cell, losing focus and DOM identity. Templates must not use hooks.
+ */
+function renderTemplate<P extends object>(
+  template: ColumnDefTemplate<P> | undefined,
+  props: P,
+): ReactNode {
+  if (template === undefined) return null;
+  return typeof template === 'function' ? (template(props) as ReactNode) : template;
 }
 
 export function DataTable<T>({ caption, data, columns, getRowId }: DataTableProps<T>) {
@@ -24,7 +43,7 @@ export function DataTable<T>({ caption, data, columns, getRowId }: DataTableProp
                   scope="col"
                   className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
                 >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
+                  {renderTemplate(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}
             </tr>
@@ -35,7 +54,7 @@ export function DataTable<T>({ caption, data, columns, getRowId }: DataTableProp
             <tr key={row.id}>
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className="whitespace-nowrap px-4 py-3">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  {renderTemplate(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}
             </tr>
