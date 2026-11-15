@@ -226,9 +226,11 @@ apps/web/src/
 
 ### Onboarding wizard
 
-Steps: **Company** (name, country) → **Locale** (currency, default categories template) → **Employees** (CSV upload with row-level validation errors, downloadable error report) → **Review** → **Provision**. Provisioning creates the tenant as `provisioning`, seeds categories and policies, then transitions it to `active`, with the progress shown step by step.
+Steps, each at its own URL (`/tenants/new/:step`): **Company** (name, country) → **Locale** (currency, Standard or Empty category template) → **Employees** (optional CSV upload with row-level validation errors, a downloadable error report and a valid-rows preview) → **Review** → **Provision**. A deep link to a step whose earlier steps are incomplete redirects to the first incomplete one.
 
-The draft lives in the `onboarding` slice and is persisted to localStorage, so a refresh doesn't lose work.
+Provisioning makes four real API calls, each shown with its status: create the tenant (`provisioning`) → apply the template → import employees → activate ([ADR 0004](adr/0004-client-orchestrated-resumable-provisioning.md)). Completed calls are recorded in the draft, so Retry resumes where it failed and never creates the tenant twice. The Support Operator may write to a tenant's program only while it is `provisioning`.
+
+The draft lives in the `onboarding` slice and is persisted to localStorage, so a refresh doesn't lose work. CSV parsing (Papaparse, auto-detected `,`/`;`, BOM-safe) happens in the browser; row rules come from the domain (`validateEmployeeImport`) and the server re-checks them.
 
 ### State rules
 
@@ -247,7 +249,7 @@ The draft lives in the `onboarding` slice and is persisted to localStorage, so a
 
 ## 6. Contracts (`packages/contracts`)
 
-- `openapi.yaml` (OpenAPI 3.1) under `/api/v1`: tenants (+ `POST /tenants/{id}/transitions`), demo personas and reset (mock only), categories, policies, employees (+ `POST /employees:import`), audit-events. Plus the AI service: `POST /v1/receipts/extract`.
+- `openapi.yaml` (OpenAPI 3.1) under `/api/v1`: tenants (+ `POST /tenants/{id}/transitions`), demo personas and reset (mock only), categories, policies, onboarding (`POST /tenants`, `POST /tenants/{id}/program:apply-template`), employees (+ `POST /tenants/{id}/employees:import`), audit-events. Plus the AI service: `POST /v1/receipts/extract`.
 - Errors use RFC 9457 Problem Details (`type`, `title`, `status`, `detail`, `errors[]`).
 - List endpoints use cursor pagination (`?cursor=&limit=`) and return `{ items, nextCursor }`.
 - `pnpm --filter contracts generate` runs `openapi-typescript`, and the output is committed. CI fails if the generated file is stale.

@@ -21,6 +21,18 @@ _Avoid_: Transition (for the command itself; a transition is the resulting statu
 The final Lifecycle Action: it closes a suspended Tenant for good. The Tenant and its history are kept, never erased.
 _Avoid_: Delete, remove
 
+**Onboarding**:
+Bringing a new customer onto the platform: the Support Operator fills the wizard (company, locale, employees), then provisions the Tenant.
+
+**Onboarding Draft**:
+The wizard's saved, unfinished input, kept in the browser until provisioning succeeds or it is discarded. One per browser.
+
+**Provisioning**:
+The steps that turn an Onboarding Draft into an active Tenant: create it, apply the Category Template, import employees, activate. A Tenant whose provisioning stopped halfway stays `provisioning`.
+
+**Category Template**:
+A ready-made set of Expense Categories and Policy Rules applied during provisioning: Standard or Empty.
+
 **Audit Event**:
 An immutable record that an actor changed something, with what it looked like before and after.
 _Avoid_: Log entry, history item
@@ -69,6 +81,10 @@ The Tenant the console is acting on. For a Program Admin, it is always their own
 **Employee**:
 A person covered by a Tenant's expense program. Employees never use the console: they are only the subjects of policy rules.
 _Avoid_: User, member
+
+**Employee Import**:
+Adding Employees in bulk from a CSV file. It creates only (no updates), emails are unique per Tenant, and the server accepts all rows or none.
+_Avoid_: Sync, upload (for the whole operation)
 
 **Employee Role**:
 An Employee's seniority (employee, manager or director). Policy rules are set per Employee Role.
