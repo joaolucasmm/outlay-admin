@@ -1,0 +1,47 @@
+import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
+
+interface DataTableProps<T> {
+  /** Accessible name of the table (rendered as a visually hidden caption). */
+  caption: string;
+  data: T[];
+  columns: ColumnDef<T>[];
+  getRowId: (row: T) => string;
+}
+
+export function DataTable<T>({ caption, data, columns, getRowId }: DataTableProps<T>) {
+  const table = useReactTable({ data, columns, getRowId, getCoreRowModel: getCoreRowModel() });
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <table className="min-w-full divide-y divide-slate-200 text-sm">
+        <caption className="sr-only">{caption}</caption>
+        <thead className="bg-slate-50">
+          {table.getHeaderGroups().map((group) => (
+            <tr key={group.id}>
+              {group.headers.map((header) => (
+                <th
+                  key={header.id}
+                  scope="col"
+                  className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-600"
+                >
+                  {flexRender(header.column.columnDef.header, header.getContext())}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {table.getRowModel().rows.map((row) => (
+            <tr key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <td key={cell.id} className="whitespace-nowrap px-4 py-3">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
