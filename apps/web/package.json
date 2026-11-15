@@ -1,0 +1,43 @@
+{
+  "name": "web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@outlay/domain": "workspace:^",
+    "@reduxjs/toolkit": "^2",
+    "contracts": "workspace:^",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-redux": "^9",
+    "react-router": "^7"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4",
+    "@testing-library/dom": "^10",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5",
+    "jsdom": "^26",
+    "msw": "^2",
+    "tailwindcss": "^4",
+    "vite": "^7",
+    "vitest": "^3.2"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}
