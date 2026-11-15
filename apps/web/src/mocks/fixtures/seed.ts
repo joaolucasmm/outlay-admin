@@ -77,6 +77,7 @@ export const seedTenants: Tenant[] = [
 ];
 
 const operator = { id: 'per_operator', role: 'support_operator' } as const;
+const bluefinAdmin = { id: 'per_admin_tnt_bluefin', role: 'program_admin' } as const;
 
 export const seedAuditEvents: AuditEvent[] = [
   {
@@ -122,5 +123,67 @@ export const seedAuditEvents: AuditEvent[] = [
     before: { status: 'active' },
     after: { status: 'suspended', reason: 'Requested by customer' },
     at: '2026-11-01T18:45:00.000Z',
+  },
+  // Bluefin's history, so its audit log shows every kind of change.
+  {
+    id: 'aud_seed_5',
+    tenantId: 'tnt_bluefin',
+    actor: operator,
+    action: 'tenant.created',
+    entity: 'tenant',
+    entityId: 'tnt_bluefin',
+    after: { name: 'Bluefin Logistics', country: 'BR', currency: 'BRL', status: 'provisioning' },
+    at: '2026-02-03T14:12:00.000Z',
+  },
+  {
+    id: 'aud_seed_6',
+    tenantId: 'tnt_bluefin',
+    actor: operator,
+    action: 'tenant.activated',
+    entity: 'tenant',
+    entityId: 'tnt_bluefin',
+    before: { status: 'provisioning' },
+    after: { status: 'active' },
+    at: '2026-02-04T09:30:00.000Z',
+  },
+  {
+    id: 'aud_seed_7',
+    tenantId: 'tnt_bluefin',
+    actor: bluefinAdmin,
+    action: 'category.updated',
+    entity: 'category',
+    entityId: 'cat_bluefin_software',
+    before: { active: true },
+    after: { active: false },
+    at: '2026-03-10T11:00:00.000Z',
+  },
+  {
+    id: 'aud_seed_8',
+    tenantId: 'tnt_bluefin',
+    actor: bluefinAdmin,
+    action: 'policy.updated',
+    entity: 'policy',
+    entityId: 'tnt_bluefin',
+    before: {
+      'cat_bluefin_meals:manager': {
+        limitMinor: 35000,
+        receiptRequiredAboveMinor: 12500,
+        approvalLevels: 0,
+      },
+      'cat_bluefin_client_ent:manager': {
+        limitMinor: 250000,
+        receiptRequiredAboveMinor: 0,
+        approvalLevels: 2,
+      },
+    },
+    after: {
+      'cat_bluefin_meals:manager': {
+        limitMinor: 40000,
+        receiptRequiredAboveMinor: 12500,
+        approvalLevels: 0,
+      },
+      'cat_bluefin_client_ent:manager': null,
+    },
+    at: '2026-03-15T16:20:00.000Z',
   },
 ];

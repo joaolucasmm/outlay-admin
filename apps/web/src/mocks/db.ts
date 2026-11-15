@@ -4,7 +4,7 @@ import { seedCategories, seedPolicyRules } from './fixtures/program';
 import { seedAuditEvents, seedTenants } from './fixtures/seed';
 
 /** Bump when the stored shape changes: older saved data is then discarded. */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 export const STORAGE_KEY = `outlay-admin:db:v${SCHEMA_VERSION}`;
 
 interface DbState {
