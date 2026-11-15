@@ -28,6 +28,18 @@ export type PolicyRulesReplace = Schemas['PolicyRulesReplace'];
 export type FindingSeverity = Schemas['FindingSeverity'];
 export type PolicyFinding = Schemas['PolicyFinding'];
 export type PolicyCheckResult = Schemas['PolicyCheckResult'];
+export type TenantCreate = Schemas['TenantCreate'];
+export type CategoryTemplateId = Schemas['CategoryTemplateId'];
+export type ApplyTemplate = Schemas['ApplyTemplate'];
+export type TemplateResult = Schemas['TemplateResult'];
+export type EmployeeInput = Schemas['EmployeeInput'];
+export type Employee = Schemas['Employee'];
+export type EmployeePage = Schemas['EmployeePage'];
+export type EmployeeImport = Schemas['EmployeeImport'];
+export type ImportResult = Schemas['ImportResult'];
+export type ListEmployeesQuery = NonNullable<
+  paths['/tenants/{tenantId}/employees']['get']['parameters']['query']
+>;
 
 export type ListTenantsQuery = NonNullable<paths['/tenants']['get']['parameters']['query']>;
 export type ListAuditEventsQuery = NonNullable<

@@ -60,6 +60,122 @@ paths:
                 $ref: '#/components/schemas/TenantPage'
         '400': { $ref: '#/components/responses/Problem' }
         '401': { $ref: '#/components/responses/Problem' }
+    post:
+      tags: [tenants]
+      operationId: createTenant
+      summary: Start onboarding a tenant. It is created as `provisioning`. Emits `tenant.created`.
+      description: Support Operator only. Names are unique, ignoring case.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreate'
+      responses:
+        '201':
+          description: The new tenant, in `provisioning`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '409':
+          description: Another tenant already has this name.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+
+  /tenants/{tenantId}/program:apply-template:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      tags: [program]
+      operationId: applyCategoryTemplate
+      summary: Seed categories and policy rules from a template. Emits `program.template_applied`.
+      description: >
+        Support Operator only, while the tenant is `provisioning`. Idempotent: categories
+        whose code already exists are skipped, so a retried onboarding step is safe.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplyTemplate'
+      responses:
+        '200':
+          description: What was created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResult'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
+
+  /tenants/{tenantId}/employees:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    get:
+      tags: [program]
+      operationId: listEmployees
+      summary: List the tenant's employees, sorted by name. Program Admin only.
+      parameters:
+        - name: q
+          in: query
+          description: Case-insensitive substring of the name or email.
+          schema: { type: string }
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/EmployeeRole'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: A page of employees.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeePage'
+        '400': { $ref: '#/components/responses/Problem' }
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+
+  /tenants/{tenantId}/employees:import:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    post:
+      tags: [program]
+      operationId: importEmployees
+      summary: Create employees in bulk, all or nothing. Emits `employees.imported`.
+      description: >
+        A Program Admin imports into their active tenant; a Support Operator only while
+        the tenant is `provisioning` (onboarding). Emails are unique per tenant, ignoring
+        case. If any row is invalid nothing is imported, and `errors[].field` points at it
+        (e.g. `employees[3].email`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeImport'
+      responses:
+        '200':
+          description: How many employees were created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '401': { $ref: '#/components/responses/Problem' }
+        '403': { $ref: '#/components/responses/Problem' }
+        '404': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+        '422': { $ref: '#/components/responses/Problem' }
 
   /tenants/{tenantId}:
     parameters:
@@ -354,6 +470,81 @@ components:
           $ref: '#/components/schemas/TenantStatus'
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
+
+    TenantCreate:
+      type: object
+      required: [name, country, currency]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        country:
+          type: string
+          description: ISO 3166-1 alpha-2, one of the supported countries.
+        currency:
+          type: string
+          description: ISO 4217, one of the supported currencies.
+
+    CategoryTemplateId:
+      type: string
+      enum: [standard, empty]
+
+    ApplyTemplate:
+      type: object
+      required: [templateId]
+      properties:
+        templateId:
+          $ref: '#/components/schemas/CategoryTemplateId'
+
+    TemplateResult:
+      type: object
+      required: [categoriesCreated, rulesCreated]
+      properties:
+        categoriesCreated: { type: integer, minimum: 0 }
+        rulesCreated: { type: integer, minimum: 0 }
+
+    EmployeeInput:
+      type: object
+      required: [name, email, role, costCenter]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        role:
+          $ref: '#/components/schemas/EmployeeRole'
+        costCenter: { type: string, minLength: 1, maxLength: 40 }
+
+    Employee:
+      allOf:
+        - $ref: '#/components/schemas/EmployeeInput'
+        - type: object
+          required: [id, tenantId]
+          properties:
+            id: { type: string }
+            tenantId: { type: string }
+
+    EmployeePage:
+      type: object
+      required: [items, nextCursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Employee' }
+        nextCursor:
+          type: [string, 'null']
+
+    EmployeeImport:
+      type: object
+      required: [employees]
+      properties:
+        employees:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items: { $ref: '#/components/schemas/EmployeeInput' }
+
+    ImportResult:
+      type: object
+      required: [imported]
+      properties:
+        imported: { type: integer, minimum: 0 }
 
     TenantPage:
       type: object

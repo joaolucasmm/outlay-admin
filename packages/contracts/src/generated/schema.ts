@@ -34,7 +34,74 @@ export interface paths {
          */
         get: operations["listTenants"];
         put?: never;
+        /**
+         * Start onboarding a tenant. It is created as `provisioning`. Emits `tenant.created`.
+         * @description Support Operator only. Names are unique, ignoring case.
+         */
+        post: operations["createTenant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/{tenantId}/program:apply-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed categories and policy rules from a template. Emits `program.template_applied`.
+         * @description Support Operator only, while the tenant is `provisioning`. Idempotent: categories whose code already exists are skipped, so a retried onboarding step is safe.
+         */
+        post: operations["applyCategoryTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/{tenantId}/employees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        /** List the tenant's employees, sorted by name. Program Admin only. */
+        get: operations["listEmployees"];
+        put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenants/{tenantId}/employees:import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create employees in bulk, all or nothing. Emits `employees.imported`.
+         * @description A Program Admin imports into their active tenant; a Support Operator only while the tenant is `provisioning` (onboarding). Emails are unique per tenant, ignoring case. If any row is invalid nothing is imported, and `errors[].field` points at it (e.g. `employees[3].email`).
+         */
+        post: operations["importEmployees"];
         delete?: never;
         options?: never;
         head?: never;
@@ -228,6 +295,43 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        TenantCreate: {
+            name: string;
+            /** @description ISO 3166-1 alpha-2, one of the supported countries. */
+            country: string;
+            /** @description ISO 4217, one of the supported currencies. */
+            currency: string;
+        };
+        /** @enum {string} */
+        CategoryTemplateId: "standard" | "empty";
+        ApplyTemplate: {
+            templateId: components["schemas"]["CategoryTemplateId"];
+        };
+        TemplateResult: {
+            categoriesCreated: number;
+            rulesCreated: number;
+        };
+        EmployeeInput: {
+            name: string;
+            /** Format: email */
+            email: string;
+            role: components["schemas"]["EmployeeRole"];
+            costCenter: string;
+        };
+        Employee: components["schemas"]["EmployeeInput"] & {
+            id: string;
+            tenantId: string;
+        };
+        EmployeePage: {
+            items: components["schemas"]["Employee"][];
+            nextCursor: string | null;
+        };
+        EmployeeImport: {
+            employees: components["schemas"]["EmployeeInput"][];
+        };
+        ImportResult: {
+            imported: number;
+        };
         TenantPage: {
             items: components["schemas"]["Tenant"][];
             nextCursor: string | null;
@@ -416,6 +520,137 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             401: components["responses"]["Problem"];
+        };
+    };
+    createTenant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantCreate"];
+            };
+        };
+        responses: {
+            /** @description The new tenant, in `provisioning`. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tenant"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            /** @description Another tenant already has this name. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Problem"];
+        };
+    };
+    applyCategoryTemplate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyTemplate"];
+            };
+        };
+        responses: {
+            /** @description What was created. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateResult"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+        };
+    };
+    listEmployees: {
+        parameters: {
+            query?: {
+                /** @description Case-insensitive substring of the name or email. */
+                q?: string;
+                role?: components["schemas"]["EmployeeRole"];
+                /** @description Opaque cursor from a previous page's `nextCursor`. */
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of employees. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeePage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+        };
+    };
+    importEmployees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantId: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeImport"];
+            };
+        };
+        responses: {
+            /** @description How many employees were created. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
         };
     };
     getTenant: {
