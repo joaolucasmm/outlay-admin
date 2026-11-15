@@ -1,18 +1,27 @@
-import type { AuditEvent, Tenant } from 'contracts';
+import type { AuditEvent, ExpenseCategory, PolicyRule, Tenant } from 'contracts';
+import { seedCategories, seedPolicyRules } from './fixtures/program';
 import { seedAuditEvents, seedTenants } from './fixtures/seed';
 
 /** Bump when the stored shape changes: older saved data is then discarded. */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 export const STORAGE_KEY = `outlay-admin:db:v${SCHEMA_VERSION}`;
 
 interface DbState {
   version: number;
   tenants: Tenant[];
   auditEvents: AuditEvent[];
+  categories: ExpenseCategory[];
+  policyRules: PolicyRule[];
 }
 
 const seed = (): DbState =>
-  structuredClone({ version: SCHEMA_VERSION, tenants: seedTenants, auditEvents: seedAuditEvents });
+  structuredClone({
+    version: SCHEMA_VERSION,
+    tenants: seedTenants,
+    auditEvents: seedAuditEvents,
+    categories: seedCategories,
+    policyRules: seedPolicyRules,
+  });
 
 const isDbState = (value: unknown): value is DbState =>
   typeof value === 'object' &&
@@ -22,7 +31,11 @@ const isDbState = (value: unknown): value is DbState =>
   'tenants' in value &&
   Array.isArray(value.tenants) &&
   'auditEvents' in value &&
-  Array.isArray(value.auditEvents);
+  Array.isArray(value.auditEvents) &&
+  'categories' in value &&
+  Array.isArray(value.categories) &&
+  'policyRules' in value &&
+  Array.isArray(value.policyRules);
 
 /**
  * In-memory mock database, persisted to `storage` (localStorage in the browser)
@@ -61,6 +74,22 @@ export function createDb(storage: Storage | null) {
       state.auditEvents = [event, ...state.auditEvents];
       save();
     },
+
+    categories: (tenantId: string) => state.categories.filter((c) => c.tenantId === tenantId),
+    saveCategory(category: ExpenseCategory) {
+      const exists = state.categories.some((c) => c.id === category.id);
+      state.categories = exists
+        ? state.categories.map((c) => (c.id === category.id ? category : c))
+        : [...state.categories, category];
+      save();
+    },
+
+    policyRules: (tenantId: string) => state.policyRules.filter((r) => r.tenantId === tenantId),
+    replacePolicyRules(tenantId: string, rules: PolicyRule[]) {
+      state.policyRules = [...state.policyRules.filter((r) => r.tenantId !== tenantId), ...rules];
+      save();
+    },
+
     reset() {
       state = seed();
       save();
