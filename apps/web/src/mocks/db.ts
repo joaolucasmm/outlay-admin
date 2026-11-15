@@ -1,9 +1,10 @@
-import type { AuditEvent, ExpenseCategory, PolicyRule, Tenant } from 'contracts';
+import type { AuditEvent, Employee, ExpenseCategory, PolicyRule, Tenant } from 'contracts';
+import { seedEmployees } from './fixtures/employees';
 import { seedCategories, seedPolicyRules } from './fixtures/program';
 import { seedAuditEvents, seedTenants } from './fixtures/seed';
 
 /** Bump when the stored shape changes: older saved data is then discarded. */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 export const STORAGE_KEY = `outlay-admin:db:v${SCHEMA_VERSION}`;
 
 interface DbState {
@@ -12,6 +13,7 @@ interface DbState {
   auditEvents: AuditEvent[];
   categories: ExpenseCategory[];
   policyRules: PolicyRule[];
+  employees: Employee[];
 }
 
 const seed = (): DbState =>
@@ -21,6 +23,7 @@ const seed = (): DbState =>
     auditEvents: seedAuditEvents,
     categories: seedCategories,
     policyRules: seedPolicyRules,
+    employees: seedEmployees,
   });
 
 const isDbState = (value: unknown): value is DbState =>
@@ -35,7 +38,9 @@ const isDbState = (value: unknown): value is DbState =>
   'categories' in value &&
   Array.isArray(value.categories) &&
   'policyRules' in value &&
-  Array.isArray(value.policyRules);
+  Array.isArray(value.policyRules) &&
+  'employees' in value &&
+  Array.isArray(value.employees);
 
 /**
  * In-memory mock database, persisted to `storage` (localStorage in the browser)
@@ -66,6 +71,10 @@ export function createDb(storage: Storage | null) {
     tenants: () => state.tenants,
     auditEvents: () => state.auditEvents,
     findTenant: (id: string) => state.tenants.find((tenant) => tenant.id === id),
+    addTenant(tenant: Tenant) {
+      state.tenants = [...state.tenants, tenant];
+      save();
+    },
     updateTenant(tenant: Tenant) {
       state.tenants = state.tenants.map((t) => (t.id === tenant.id ? tenant : t));
       save();
@@ -87,6 +96,18 @@ export function createDb(storage: Storage | null) {
     policyRules: (tenantId: string) => state.policyRules.filter((r) => r.tenantId === tenantId),
     replacePolicyRules(tenantId: string, rules: PolicyRule[]) {
       state.policyRules = [...state.policyRules.filter((r) => r.tenantId !== tenantId), ...rules];
+      save();
+    },
+
+    addProgram(categories: ExpenseCategory[], rules: PolicyRule[]) {
+      state.categories = [...state.categories, ...categories];
+      state.policyRules = [...state.policyRules, ...rules];
+      save();
+    },
+
+    employees: (tenantId: string) => state.employees.filter((e) => e.tenantId === tenantId),
+    addEmployees(employees: Employee[]) {
+      state.employees = [...state.employees, ...employees];
       save();
     },
 

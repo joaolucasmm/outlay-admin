@@ -1,4 +1,4 @@
-import { can, canEditProgram, type FieldError } from '@outlay/domain';
+import { can, programWriteAccess, type FieldError } from '@outlay/domain';
 import type { Actor, Persona, Problem, Tenant } from 'contracts';
 import { HttpResponse } from 'msw';
 import type { Db } from './db';
@@ -61,9 +61,11 @@ export interface ProgramAccess {
 }
 
 /**
- * Access check for a tenant's expense program (categories, policy rules):
- * 401 without a persona, 403 for a role without `tenant:configure`, 404 for another
- * tenant (no leaking), 409 when writing to a tenant that is not active.
+ * Access check for a tenant's expense program (categories, policy rules, employees):
+ * 401 without a persona, 404 for another tenant (no leaking), then
+ * - reads: Program Admin only (403 otherwise);
+ * - writes: `programWriteAccess` — a Program Admin while the tenant is active (409 if
+ *   not), the Support Operator only while onboarding it (403 otherwise).
  */
 export function programAccess(
   request: Request,
@@ -73,20 +75,28 @@ export function programAccess(
 ): ProgramAccess | Response {
   const caller = callerFrom(request, db);
   if (!caller) return unauthenticated();
-  if (!can(caller.actor.role, 'tenant:configure')) {
-    return problem(403, 'Forbidden', 'Only a Program Admin manages a tenant program.');
-  }
   const tenant = db.findTenant(tenantId);
-  if (!tenant || tenant.id !== caller.tenantId)
-    return problem(404, 'Not found', 'Tenant not found.');
-  if (write && !canEditProgram(tenant)) {
-    return problem(
-      409,
-      'Tenant not active',
-      `${tenant.name} is ${tenant.status}: its program is read-only.`,
-    );
+  const inScope = caller.actor.role === 'support_operator' || tenant?.id === caller.tenantId;
+  if (!tenant || !inScope) return problem(404, 'Not found', 'Tenant not found.');
+
+  if (!write) {
+    return can(caller.actor.role, 'tenant:configure')
+      ? { caller, tenant }
+      : problem(403, 'Forbidden', 'Only a Program Admin manages a tenant program.');
   }
-  return { caller, tenant };
+  const access = programWriteAccess(caller.actor.role, tenant);
+  if (access.ok) return { caller, tenant };
+  return access.error === 'forbidden'
+    ? problem(
+        403,
+        'Forbidden',
+        'Only a Program Admin manages a tenant program (the Support Operator only during onboarding).',
+      )
+    : problem(
+        409,
+        'Tenant not active',
+        `${tenant.name} is ${tenant.status}: its program is read-only.`,
+      );
 }
 
 export const fieldErrors = (errors: readonly FieldError[], prefix = '') =>

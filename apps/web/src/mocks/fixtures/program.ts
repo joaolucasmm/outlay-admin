@@ -61,13 +61,20 @@ export const CATEGORY_TEMPLATE: CategorySpec[] = [
 /** Rough scale so limits look plausible in each currency. Display only. */
 const SCALE: Record<string, number> = { BRL: 5, MXN: 20 };
 
-export function programFor(tenant: Pick<Tenant, 'id' | 'currency'>) {
-  const scale = (SCALE[tenant.currency] ?? 1) * 100; // to minor units (all seed currencies have 2 decimals)
+/**
+ * The standard template for a tenant, in its currency. Categories whose code is in
+ * `skipCodes` are left out, which makes applying the template idempotent.
+ */
+export function programFor(
+  tenant: Pick<Tenant, 'id' | 'currency'>,
+  skipCodes: ReadonlySet<string> = new Set(),
+) {
+  const scale = (SCALE[tenant.currency] ?? 1) * 100; // to minor units (all supported currencies have 2 decimals)
   const slug = tenant.id.replace(/^tnt_/, '');
   const categories: ExpenseCategory[] = [];
   const rules: PolicyRule[] = [];
 
-  for (const spec of CATEGORY_TEMPLATE) {
+  for (const spec of CATEGORY_TEMPLATE.filter((s) => !skipCodes.has(s.code))) {
     const categoryId = `cat_${slug}_${spec.code.toLowerCase()}`;
     categories.push({
       id: categoryId,
@@ -94,7 +101,7 @@ export function programFor(tenant: Pick<Tenant, 'id' | 'currency'>) {
 }
 
 /** Every seed tenant gets the template, except the one still being onboarded. */
-const seeded = seedTenants.filter((t) => t.status !== 'provisioning').map(programFor);
+const seeded = seedTenants.filter((t) => t.status !== 'provisioning').map((t) => programFor(t));
 
 export const seedCategories: ExpenseCategory[] = seeded.flatMap((p) => p.categories);
 export const seedPolicyRules: PolicyRule[] = seeded.flatMap((p) => p.rules);
