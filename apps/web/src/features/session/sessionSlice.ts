@@ -1,30 +1,32 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { DEFAULT_TENANT_ID } from './placeholderTenants';
+import type { Persona } from 'contracts';
 
-/** Who is using the console (see CONTEXT.md). Not to be confused with an Employee Role. */
-export type AdminRole = 'support_operator' | 'program_admin';
-
-export const ADMIN_ROLE_OPTIONS: readonly { value: AdminRole; label: string }[] = [
-  { value: 'support_operator', label: 'Support Operator' },
-  { value: 'program_admin', label: 'Program Admin' },
-];
+/** The demo starts signed in as the Support Operator (see ADR 0002). */
+export const DEFAULT_PERSONA: Persona = {
+  id: 'per_operator',
+  label: 'Support Operator',
+  role: 'support_operator',
+  tenantId: null,
+};
 
 export interface SessionState {
-  currentRole: AdminRole;
-  currentTenantId: string;
+  persona: Persona;
+  /** The Current Tenant: always the persona's own tenant for a Program Admin. */
+  currentTenantId: string | null;
 }
 
 const initialState: SessionState = {
-  currentRole: 'support_operator',
-  currentTenantId: DEFAULT_TENANT_ID,
+  persona: DEFAULT_PERSONA,
+  currentTenantId: null,
 };
 
 export const sessionSlice = createSlice({
   name: 'session',
   initialState,
   reducers: {
-    setRole(state, action: PayloadAction<AdminRole>) {
-      state.currentRole = action.payload;
+    signIn(state, action: PayloadAction<Persona>) {
+      state.persona = action.payload;
+      state.currentTenantId = action.payload.tenantId ?? state.currentTenantId;
     },
     setCurrentTenant(state, action: PayloadAction<string>) {
       state.currentTenantId = action.payload;
@@ -32,8 +34,10 @@ export const sessionSlice = createSlice({
   },
   selectors: {
     selectSession: (state) => state,
+    selectPersona: (state) => state.persona,
+    selectRole: (state) => state.persona.role,
   },
 });
 
-export const { setRole, setCurrentTenant } = sessionSlice.actions;
-export const { selectSession } = sessionSlice.selectors;
+export const { signIn, setCurrentTenant } = sessionSlice.actions;
+export const { selectSession, selectPersona, selectRole } = sessionSlice.selectors;

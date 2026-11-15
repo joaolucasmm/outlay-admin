@@ -2,17 +2,25 @@ import { useId } from 'react';
 
 interface SelectProps<T extends string> {
   label: string;
-  value: T;
+  /** `''` shows the placeholder option. */
+  value: T | '';
   options: readonly { value: T; label: string }[];
   onChange: (value: T) => void;
+  placeholder?: string;
 }
 
 /** Native, labelled select: keyboard-accessible with no extra work. */
-export function Select<T extends string>({ label, value, options, onChange }: SelectProps<T>) {
+export function Select<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  placeholder,
+}: SelectProps<T>) {
   const id = useId();
   return (
     <div className="flex items-center gap-2 text-sm">
-      <label htmlFor={id} className="text-slate-600">
+      <label htmlFor={id} className="whitespace-nowrap text-slate-600">
         {label}
       </label>
       <select
@@ -24,6 +32,11 @@ export function Select<T extends string>({ label, value, options, onChange }: Se
         }}
         className="rounded-md border border-slate-300 bg-white px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
+        {placeholder !== undefined && (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        )}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

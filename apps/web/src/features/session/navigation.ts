@@ -1,29 +1,29 @@
+import type { Persona } from 'contracts';
 import { matchPath } from 'react-router';
-import type { AdminRole } from './sessionSlice';
 
 export interface NavItem {
   label: string;
   to: string;
 }
 
-export const homePathFor = (role: AdminRole, tenantId: string): string =>
-  role === 'support_operator' ? '/tenants' : `/t/${tenantId}/categories`;
+export const homePathFor = (persona: Persona): string =>
+  persona.tenantId ? `/t/${persona.tenantId}/categories` : '/tenants';
 
-export const navItemsFor = (role: AdminRole, tenantId: string): NavItem[] => {
-  const tenantBase = `/t/${tenantId}`;
-  if (role === 'support_operator') {
+export const navItemsFor = (persona: Persona, currentTenantId: string | null): NavItem[] => {
+  if (persona.role === 'support_operator') {
     return [
       { label: 'Tenants', to: '/tenants' },
       { label: 'New tenant', to: '/tenants/new' },
-      { label: 'Audit log', to: `${tenantBase}/audit` },
+      ...(currentTenantId ? [{ label: 'Audit log', to: `/t/${currentTenantId}/audit` }] : []),
     ];
   }
+  const base = `/t/${persona.tenantId ?? ''}`;
   return [
-    { label: 'Categories', to: `${tenantBase}/categories` },
-    { label: 'Policies', to: `${tenantBase}/policies` },
-    { label: 'Employees', to: `${tenantBase}/employees` },
-    { label: 'Receipts', to: `${tenantBase}/receipts` },
-    { label: 'Audit log', to: `${tenantBase}/audit` },
+    { label: 'Categories', to: `${base}/categories` },
+    { label: 'Policies', to: `${base}/policies` },
+    { label: 'Employees', to: `${base}/employees` },
+    { label: 'Receipts', to: `${base}/receipts` },
+    { label: 'Audit log', to: `${base}/audit` },
   ];
 };
 

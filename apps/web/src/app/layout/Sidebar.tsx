@@ -1,16 +1,17 @@
 import { NavLink } from 'react-router';
 import { useAppSelector } from '../store';
+import { ResetDemoButton } from '../../features/session/components/ResetDemoButton';
 import { navItemsFor } from '../../features/session/navigation';
 import { selectSession } from '../../features/session/sessionSlice';
 
 export function Sidebar() {
-  const { currentRole, currentTenantId } = useAppSelector(selectSession);
-  const items = navItemsFor(currentRole, currentTenantId);
+  const { persona, currentTenantId } = useAppSelector(selectSession);
+  const items = navItemsFor(persona, currentTenantId);
 
   return (
-    <aside className="w-56 shrink-0 border-r border-slate-200 bg-white">
+    <aside className="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white">
       <div className="px-5 py-4 text-lg font-semibold tracking-tight">Outlay Admin</div>
-      <nav aria-label="Main">
+      <nav aria-label="Main" className="flex-1">
         <ul className="space-y-1 px-3">
           {items.map((item) => (
             <li key={item.to}>
@@ -31,6 +32,9 @@ export function Sidebar() {
           ))}
         </ul>
       </nav>
+      <div className="border-t border-slate-200 p-3">
+        <ResetDemoButton />
+      </div>
     </aside>
   );
 }

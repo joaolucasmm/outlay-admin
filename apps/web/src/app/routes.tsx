@@ -1,32 +1,50 @@
+import type { Permission } from '@outlay/domain';
+import type { ReactNode } from 'react';
 import { Navigate, type RouteObject } from 'react-router';
 import { AppLayout } from './layout/AppLayout';
 import { TenantScope } from './layout/TenantScope';
 import { useAppSelector } from './store';
+import { RequirePermission } from '../features/session/components/RequirePermission';
 import { homePathFor } from '../features/session/navigation';
-import { selectSession } from '../features/session/sessionSlice';
+import { selectPersona } from '../features/session/sessionSlice';
+import { TenantsPage } from '../features/tenants/pages/TenantsPage';
 import { PlaceholderPage } from '../shared/ui/PlaceholderPage';
 
 function HomeRedirect() {
-  const { currentRole, currentTenantId } = useAppSelector(selectSession);
-  return <Navigate to={homePathFor(currentRole, currentTenantId)} replace />;
+  const persona = useAppSelector(selectPersona);
+  return <Navigate to={homePathFor(persona)} replace />;
 }
+
+const guard = (permission: Permission, element: ReactNode) => (
+  <RequirePermission permission={permission}>{element}</RequirePermission>
+);
+
+const placeholder = (title: string, milestone: string) => (
+  <PlaceholderPage title={title} milestone={milestone} />
+);
 
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
     children: [
       { index: true, element: <HomeRedirect /> },
-      { path: 'tenants', element: <PlaceholderPage title="Tenants" milestone="M1" /> },
-      { path: 'tenants/new', element: <PlaceholderPage title="New tenant" milestone="M3" /> },
+      { path: 'tenants', element: guard('tenants:list', <TenantsPage />) },
+      { path: 'tenants/new', element: guard('tenants:create', placeholder('New tenant', 'M3')) },
       {
         path: 't/:tenantId',
         element: <TenantScope />,
         children: [
-          { path: 'categories', element: <PlaceholderPage title="Categories" milestone="M2" /> },
-          { path: 'policies', element: <PlaceholderPage title="Policies" milestone="M2" /> },
-          { path: 'employees', element: <PlaceholderPage title="Employees" milestone="M3" /> },
-          { path: 'receipts', element: <PlaceholderPage title="Receipts" milestone="M5" /> },
-          { path: 'audit', element: <PlaceholderPage title="Audit log" milestone="M4" /> },
+          {
+            path: 'categories',
+            element: guard('tenant:configure', placeholder('Categories', 'M2')),
+          },
+          { path: 'policies', element: guard('tenant:configure', placeholder('Policies', 'M2')) },
+          {
+            path: 'employees',
+            element: guard('tenant:configure', placeholder('Employees', 'M3')),
+          },
+          { path: 'receipts', element: guard('tenant:configure', placeholder('Receipts', 'M5')) },
+          { path: 'audit', element: guard('audit:read', placeholder('Audit log', 'M4')) },
         ],
       },
       { path: '*', element: <PlaceholderPage title="Page not found" /> },
