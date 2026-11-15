@@ -25,10 +25,10 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] Money formatting through `Intl.NumberFormat` using the tenant currency
 
 ## M3 — Onboarding wizard & employees (~3–4h)
-- [ ] Wizard with 5 steps; draft in a persisted slice; per-step validation
-- [ ] CSV import with Papaparse: row-level errors, downloadable error CSV, valid rows preview
-- [ ] Provision flow: create → seed → activate, showing step progress
-- [ ] `/employees` table
+- [x] Wizard with 5 steps; draft in a persisted slice; per-step validation
+- [x] CSV import with Papaparse: row-level errors, downloadable error CSV, valid rows preview
+- [x] Provision flow: create → seed → activate, showing step progress
+- [x] `/employees` table
 
 ## M4 — Audit log (~1h)
 - [ ] `/audit`: filters (actor, action, entity, date), before/after JSON diff panel
