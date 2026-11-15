@@ -7,7 +7,7 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] Vite + React + TS strict + Tailwind + ESLint/Prettier + Vitest
 - [x] Redux store, RTK Query base api, router with layout (sidebar, header with role/tenant switcher)
 - [x] MSW wired for browser (dev and demo) and node (tests)
-- [ ] `ci.yml` + `deploy.yml`; a hello-world page live on GitHub Pages (workflows written; tick once the repo is pushed and Pages is live)
+- [x] `ci.yml` + `deploy.yml`; a hello-world page live on GitHub Pages (https://joaolucasmm.github.io/outlay-admin/)
 
 ## M1 — Contracts, domain, tenants (~2–3h)
 - [ ] `openapi.yaml` for tenants + transitions + audit; type generation; CI staleness check
