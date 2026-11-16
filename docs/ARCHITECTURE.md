@@ -242,8 +242,10 @@ The draft lives in the `onboarding` slice and is persisted to localStorage, so a
 ### Modes
 
 `VITE_API_MODE=mock` (default; enables MSW in the browser) and `VITE_AI_MODE=mock|live`.
-- `mock`: receipt extraction returns fixtures matched by file name, with simulated latency.
-- `live`: `POST {VITE_AI_URL}/v1/receipts/extract`.
+- `mock`: MSW answers `/v1/receipts/extract` on the same origin with fixtures for the sample receipts in `public/sample-receipts/` (drawn by `services/ai/evals/generate_receipts.py`), with simulated latency. Any other file gets an honest low-confidence answer.
+- `live`: `POST {VITE_AI_URL}/v1/receipts/extract`. Same calling code; MSW lets the request through.
+
+The `/t/:tenantId/receipts` screen: upload or pick a sample, then review editable fields (marked where the AI filled them, with the confidence). The reviewer picks the employee role and confirms the receipt is legible, and `checkExpense` runs in the browser on the reviewed Expense, updating as the fields change.
 
 ---
 
@@ -279,8 +281,9 @@ services/ai/
 └── tests/                    # unit tests with a fake LLM client (no network)
 ```
 
-- **Structured output:** the model has to answer through a tool or JSON schema derived from the Pydantic model. Invalid output gets one retry, then the service returns `confidence: "low"` with null fields. It never returns a 500 for bad model output.
-- **The model is configurable** through `MODEL_ID` (default: a small, fast vision-capable Claude model).
+- **Structured output:** `client.beta.messages.parse` with the `ModelReceipt` Pydantic model as `output_format`, so the JSON matches the schema by construction. Pydantic and `normalize.py` then validate meaning: an ISO date, an ISO 4217 currency, a total converted to minor units by the service (the model returns it as printed text), and a category from the hinted list. Invalid output, a refusal or `max_tokens` gets one retry, then the service returns `confidence: "low"` with null fields and `notes`. It never returns a 500 for bad model output; provider outages are 502/503 ([ADR 0005](adr/0005-receipt-extraction-degrades-instead-of-failing.md)).
+- **The model is configurable** through `MODEL_ID` (default `claude-opus-5-5`) and `EFFORT` (default `low`). M6 compares models on the eval set. Requests opt into server-side refusal fallbacks, and the response's `model` field reports which model answered.
+- **Input:** multipart `image` (JPEG/PNG/WebP, checked by magic bytes, up to 5 MB, downscaled to 1568 px on the long side) plus `categories`, the tenant's active categories, so the model can suggest one of them.
 - **No secrets in the repo.** `.env.example` documents the variables.
 - **The LLM client sits behind an interface,** so tests use a fake client and CI never calls the API.
 
