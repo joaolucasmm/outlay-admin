@@ -212,7 +212,9 @@ def worst_failures(variant: Variant, count: int = 6) -> list[str]:
     return lines or ["- None: every case scored 100%."]
 
 
-def build_report(baseline: Variant, others: Sequence[Variant], split: str) -> str:
+def build_report(
+    baseline: Variant, others: Sequence[Variant], split: str, notes: Sequence[str] = ()
+) -> str:
     variants = [baseline, *others]
     labels = read_jsonl(DATASET / "labels.jsonl")
     in_split = [r for r in labels if split == "all" or r["split"] == split]
@@ -254,6 +256,8 @@ def build_report(baseline: Variant, others: Sequence[Variant], split: str) -> st
     lines += ["", "## By difficulty", "", *difficulty_table(variants), ""]
     for variant in variants:
         lines += [f"## Worst cases: `{variant.name}`", "", *worst_failures(variant), ""]
+    if notes:
+        lines += ["## Notes", "", *[f"- {note}" for note in notes], ""]
     if sources == ["synthetic"]:
         lines += [
             "## Limits",
@@ -274,11 +278,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--variants", nargs="*", default=[])
     parser.add_argument("--split", choices=["dev", "test", "all"], default="test")
     parser.add_argument("--out", type=Path, help="markdown file (default: print)")
+    parser.add_argument("--note", action="append", default=[], help="add a line under Notes")
     args = parser.parse_args(argv)
     report = build_report(
         load_variant(args.baseline, args.split),
         [load_variant(v, args.split) for v in args.variants],
         args.split,
+        args.note,
     )
     if args.out:
         out = args.out if args.out.is_absolute() else ROOT / args.out
