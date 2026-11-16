@@ -6,3 +6,6 @@ packages/contracts/src/generated/
 apps/web/public/mockServiceWorker.js
 docs/
 CLAUDE.md
+.vscode/
+apps/web/test-results/
+apps/web/playwright-report/
