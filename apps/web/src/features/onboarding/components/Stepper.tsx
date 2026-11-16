@@ -59,7 +59,7 @@ export function Stepper({ current, reachable, complete }: StepperProps) {
                   {label}
                 </Link>
               ) : (
-                <span className={`${base} text-slate-400`}>{label}</span>
+                <span className={`${base} text-slate-500`}>{label}</span>
               )}
             </li>
           );

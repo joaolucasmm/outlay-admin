@@ -14,7 +14,8 @@ export function AppLayout() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
-        <main id="main" className="flex-1 p-6">
+        {/* tabIndex -1: the skip link and closing dialogs can move focus here. */}
+        <main id="main" tabIndex={-1} className="flex-1 p-6 outline-none">
           <Outlet />
         </main>
       </div>

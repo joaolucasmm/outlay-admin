@@ -47,7 +47,7 @@ export function CategoriesPage() {
       header: 'GL account',
       cell: ({ row }) =>
         row.original.glAccount ?? (
-          <span className="text-slate-400">
+          <span className="text-slate-500">
             —<span className="sr-only">none</span>
           </span>
         ),
