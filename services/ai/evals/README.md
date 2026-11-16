@@ -18,7 +18,7 @@ Paid runs call the Anthropic API: put `ANTHROPIC_API_KEY` in `services/ai/.env` 
 
 ```bash
 uv run python -m evals.generate_receipts --dataset          # regenerate (deterministic)
-uv run python -m evals.run --approve-harness ...            # once, after reviewing harness changes
+uv run python -m evals.run --approve-harness               # after reviewing harness changes (no cost)
 uv run python -m evals.run --variant opus55-v1 --model claude-opus-5-5 --prompt v1 --split test --reps 3
 uv run python -m evals.report --baseline opus55-v1 --variants opus55-v2 --out reports/<date>-v1-vs-v2.md
 ```

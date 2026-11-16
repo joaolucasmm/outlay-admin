@@ -373,9 +373,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument("--variant", required=True, help="output folder name, e.g. opus55-v1")
-    parser.add_argument("--model", required=True, help="model id, e.g. claude-opus-5-5")
-    parser.add_argument("--prompt", required=True, help="prompt version, e.g. v1")
+    parser.add_argument("--variant", help="output folder name, e.g. opus55-v1")
+    parser.add_argument("--model", help="model id, e.g. claude-opus-5-5")
+    parser.add_argument("--prompt", help="prompt version, e.g. v1")
     parser.add_argument("--split", choices=["dev", "test", "all"], default="test")
     parser.add_argument("--reps", type=int, default=3)
     parser.add_argument("--limit", type=int, help="only the first N cases (pilot runs)")
@@ -384,6 +384,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--timeout-s", type=float, default=180.0)
     parser.add_argument("--approve-harness", action="store_true")
     args = parser.parse_args(argv)
+    run_requested = any([args.variant, args.model, args.prompt])
+    if args.approve_harness and not run_requested:
+        check_harness(approve=True)  # approve only: no model call, no cost
+        print("Harness approved.")
+        return 0
+    if not (args.variant and args.model and args.prompt):
+        parser.error("--variant, --model and --prompt are required to run")
 
     try:
         check_harness(approve=args.approve_harness)

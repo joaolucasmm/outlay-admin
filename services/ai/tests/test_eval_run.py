@@ -231,3 +231,17 @@ def test_the_report_compares_variants_on_the_same_cases(tmp_path: Path) -> None:
     assert "better, beyond noise" in report
     assert "rcpt-001" in report  # the base variant's worst cases are listed
     assert "Synthetic receipts only" in report
+
+
+def test_cli_approves_the_harness_without_running(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import evals.run as runner
+
+    monkeypatch.setattr(runner, "HARNESS_LOCK", tmp_path / "harness.lock")
+    monkeypatch.setattr(runner.check_harness, "__defaults__", (tmp_path / "harness.lock",))
+    assert runner.main(["--approve-harness"]) == 0
+    assert (tmp_path / "harness.lock").read_text(
+        encoding="utf-8"
+    ).strip() == runner.harness_digest()
+    assert "Harness approved." in capsys.readouterr().out
