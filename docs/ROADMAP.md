@@ -34,11 +34,11 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] `/audit`: filters (actor, action, entity, date), before/after JSON diff panel
 
 ## M5 — AI receipt extraction (~3–4h)
-- [ ] FastAPI `POST /v1/receipts/extract`, Pydantic schema, LLM client interface + Anthropic implementation
-- [ ] Structured output, one retry, graceful low-confidence fallback
-- [ ] pytest with a fake client; ruff; added to CI
-- [ ] `/receipts`: upload → editable extracted fields → policy check result with findings
-- [ ] Mock mode with fixtures for the Pages demo; live mode via `VITE_AI_URL`
+- [x] FastAPI `POST /v1/receipts/extract`, Pydantic schema, LLM client interface + Anthropic implementation
+- [x] Structured output, one retry, graceful low-confidence fallback
+- [x] pytest with a fake client; ruff; added to CI
+- [x] `/receipts`: upload → editable extracted fields → policy check result with findings
+- [x] Mock mode with fixtures for the Pages demo; live mode via `VITE_AI_URL`
 
 ## M6 — Evals (~2–3h)
 - [ ] Synthetic receipt generator + `labels.jsonl` (~20 items) + a few real anonymized photos
