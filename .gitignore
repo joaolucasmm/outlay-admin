@@ -15,3 +15,10 @@ __pycache__/
 
 # Eval transcripts (bulky; results.jsonl and errors.jsonl are committed)
 services/ai/evals/runs/*/traces/
+
+# Playwright output
+apps/web/test-results/
+apps/web/playwright-report/
+
+# Raw frames for the README GIF (docs/media/demo.gif is committed)
+docs/media/frames/

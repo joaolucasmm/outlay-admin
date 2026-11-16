@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5",
@@ -26,6 +27,8 @@
     "zod": "^4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4",
+    "@playwright/test": "^1",
     "@tailwindcss/vite": "^4",
     "@testing-library/dom": "^10",
     "@testing-library/jest-dom": "^6",
