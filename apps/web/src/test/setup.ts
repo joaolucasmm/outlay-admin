@@ -3,6 +3,7 @@ import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { db } from '../mocks/db';
 import { server } from '../mocks/node';
+import './blobPolyfill';
 
 beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
