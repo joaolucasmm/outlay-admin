@@ -11,7 +11,7 @@ import { DEFAULT_PERSONA, selectPersona, signIn } from '../sessionSlice';
 /** Demo-only "sign in as" control (ADR 0002). */
 export function PersonaSwitcher() {
   const persona = useAppSelector(selectPersona);
-  const { data: personas } = useGetPersonasQuery(undefined);
+  const { data: personas, isLoading } = useGetPersonasQuery(undefined);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
@@ -39,6 +39,7 @@ export function PersonaSwitcher() {
     <Select
       label="Signed in as"
       value={persona.id}
+      disabled={isLoading}
       options={options}
       onChange={(id) => {
         const next = personas?.find((p) => p.id === id);

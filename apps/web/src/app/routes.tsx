@@ -2,6 +2,8 @@ import type { Permission } from '@outlay/domain';
 import type { ReactNode } from 'react';
 import { Navigate, type RouteObject } from 'react-router';
 import { AppLayout } from './layout/AppLayout';
+import { NotFoundPage } from './layout/NotFoundPage';
+import { RouteErrorPage } from './layout/RouteErrorPage';
 import { TenantScope } from './layout/TenantScope';
 import { useAppSelector } from './store';
 import { AuditPage } from '../features/audit/pages/AuditPage';
@@ -14,7 +16,6 @@ import { RequirePermission } from '../features/session/components/RequirePermiss
 import { homePathFor } from '../features/session/navigation';
 import { selectPersona } from '../features/session/sessionSlice';
 import { TenantsPage } from '../features/tenants/pages/TenantsPage';
-import { PlaceholderPage } from '../shared/ui/PlaceholderPage';
 
 function HomeRedirect() {
   const persona = useAppSelector(selectPersona);
@@ -28,6 +29,7 @@ const guard = (permission: Permission, element: ReactNode) => (
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
+    errorElement: <RouteErrorPage />,
     children: [
       { index: true, element: <HomeRedirect /> },
       { path: 'tenants', element: guard('tenants:list', <TenantsPage />) },
@@ -44,7 +46,7 @@ export const routes: RouteObject[] = [
           { path: 'audit', element: guard('audit:read', <AuditPage />) },
         ],
       },
-      { path: '*', element: <PlaceholderPage title="Page not found" /> },
+      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ];

@@ -7,6 +7,7 @@ interface SelectProps<T extends string> {
   options: readonly { value: T; label: string }[];
   onChange: (value: T) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 /** Native, labelled select: keyboard-accessible with no extra work. */
@@ -16,6 +17,7 @@ export function Select<T extends string>({
   options,
   onChange,
   placeholder,
+  disabled = false,
 }: SelectProps<T>) {
   const id = useId();
   return (
@@ -26,11 +28,12 @@ export function Select<T extends string>({
       <select
         id={id}
         value={value}
+        disabled={disabled}
         onChange={(event) => {
           const next = options.find((option) => option.value === event.target.value);
           if (next) onChange(next.value);
         }}
-        className="rounded-md border border-slate-300 bg-white px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="rounded-md border border-slate-300 bg-white px-2 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-wait disabled:bg-slate-50"
       >
         {placeholder !== undefined && (
           <option value="" disabled>

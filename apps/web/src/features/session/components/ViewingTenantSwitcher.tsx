@@ -9,7 +9,10 @@ import { selectSession, setCurrentTenant } from '../sessionSlice';
 export function ViewingTenantSwitcher() {
   const { persona, currentTenantId } = useAppSelector(selectSession);
   const isOperator = persona.role === 'support_operator';
-  const { data } = useGetTenantsInfiniteQuery({ limit: 100 }, { skip: !isOperator });
+  const { data, isLoading, isError } = useGetTenantsInfiniteQuery(
+    { limit: 100 },
+    { skip: !isOperator },
+  );
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -24,8 +27,12 @@ export function ViewingTenantSwitcher() {
   return (
     <Select
       label="Viewing tenant"
-      value={currentTenantId ?? ''}
-      placeholder="Choose a tenant"
+      // Until the list arrives (or if it fails) the select says why it is empty.
+      value={options.some((o) => o.value === currentTenantId) ? (currentTenantId ?? '') : ''}
+      placeholder={
+        isLoading ? 'Loading tenants…' : isError ? 'Could not load tenants' : 'Choose a tenant'
+      }
+      disabled={isLoading || isError}
       options={options}
       onChange={(tenantId) => {
         dispatch(setCurrentTenant(tenantId));
