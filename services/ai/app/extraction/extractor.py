@@ -7,7 +7,7 @@ from functools import cache
 from pathlib import Path
 
 from app.extraction.images import PreparedImage
-from app.extraction.llm import InvalidModelOutputError, ModelAnswer, ReceiptModel
+from app.extraction.llm import InvalidModelOutputError, ModelAnswer, ReceiptModel, Usage
 from app.extraction.normalize import adjusted_confidence, normalize
 from app.extraction.schema import CategoryHint, ReceiptExtraction
 
@@ -23,6 +23,23 @@ def load_prompt(version: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+@dataclass(frozen=True)
+class Attempt:
+    """One model call: what it returned, what it cost and how long it took."""
+
+    outcome: str  # "ok", or the InvalidModelOutputError reason
+    model: str | None
+    usage: Usage | None
+    stop_reason: str | None
+    latency_s: float
+
+
+@dataclass(frozen=True)
+class ExtractionRun:
+    extraction: ReceiptExtraction
+    attempts: list[Attempt]
+
+
 @dataclass
 class Extractor:
     model: ReceiptModel
@@ -30,20 +47,44 @@ class Extractor:
     clock: Callable[[], float] = field(default=time.perf_counter)
 
     def extract(self, image: PreparedImage, categories: list[CategoryHint]) -> ReceiptExtraction:
+        return self.extract_traced(image, categories).extraction
+
+    def extract_traced(self, image: PreparedImage, categories: list[CategoryHint]) -> ExtractionRun:
+        """Like `extract`, plus every attempt's usage and latency (used by the evals)."""
         instructions = load_prompt(self.prompt_version)
         started = self.clock()
-        failures: list[str] = []
+        attempts: list[Attempt] = []
         answer: ModelAnswer | None = None
         for _ in range(ATTEMPTS):
+            call_started = self.clock()
             try:
                 answer = self.model.extract(image, instructions, categories)
-                break
             except InvalidModelOutputError as error:
-                failures.append(error.reason)
+                attempts.append(
+                    Attempt(
+                        error.reason,
+                        error.model,
+                        error.usage,
+                        error.stop_reason,
+                        self.clock() - call_started,
+                    )
+                )
+                continue
+            attempts.append(
+                Attempt(
+                    "ok",
+                    answer.model,
+                    answer.usage,
+                    answer.stop_reason,
+                    self.clock() - call_started,
+                )
+            )
+            break
         latency_ms = max(0, round((self.clock() - started) * 1000))
+        failures = [a.outcome for a in attempts if a.outcome != "ok"]
 
         if answer is None:
-            return ReceiptExtraction(
+            extraction = ReceiptExtraction(
                 merchant=None,
                 date=None,
                 total_minor=None,
@@ -56,12 +97,13 @@ class Extractor:
                 prompt_version=self.prompt_version,
                 latency_ms=latency_ms,
             )
+            return ExtractionRun(extraction, attempts)
 
         fields = normalize(answer.receipt, {c.code for c in categories})
         notes = [f"Dropped: {'; '.join(fields.issues)}."] if fields.issues else []
         if failures:
             notes.append(f"Succeeded after a retry ({failures[0]}).")
-        return ReceiptExtraction(
+        extraction = ReceiptExtraction(
             merchant=fields.merchant,
             date=fields.date,
             total_minor=fields.total_minor,
@@ -73,3 +115,4 @@ class Extractor:
             prompt_version=self.prompt_version,
             latency_ms=latency_ms,
         )
+        return ExtractionRun(extraction, attempts)

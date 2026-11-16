@@ -14,12 +14,46 @@ from app.settings import Effort
 InvalidReason = Literal["invalid_output", "refusal", "max_tokens", "empty"]
 
 
+@dataclass(frozen=True)
+class Usage:
+    """Billed tokens of one call, as the API reported them."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_input_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+
+    @classmethod
+    def from_response(cls, usage: object) -> "Usage":
+        def tokens(name: str) -> int:
+            value = getattr(usage, name, 0)
+            return value if isinstance(value, int) else 0
+
+        return cls(
+            tokens("input_tokens"),
+            tokens("output_tokens"),
+            tokens("cache_read_input_tokens"),
+            tokens("cache_creation_input_tokens"),
+        )
+
+
 class InvalidModelOutputError(Exception):
     """The model answered, but not with a usable extraction. Worth one retry."""
 
-    def __init__(self, reason: InvalidReason) -> None:
+    def __init__(
+        self,
+        reason: InvalidReason,
+        *,
+        model: str | None = None,
+        usage: Usage | None = None,
+        stop_reason: str | None = None,
+    ) -> None:
         super().__init__(reason)
         self.reason: InvalidReason = reason
+        # Billed even though unusable; None when the SDK raised before we saw the response.
+        self.model = model
+        self.usage = usage
+        self.stop_reason = stop_reason
 
 
 class ProviderUnavailableError(Exception):
@@ -35,6 +69,8 @@ class ProviderUnavailableError(Exception):
 class ModelAnswer:
     receipt: ModelReceipt
     model: str
+    usage: Usage | None = None
+    stop_reason: str | None = None
 
 
 class ReceiptModel(Protocol):
@@ -111,13 +147,22 @@ class AnthropicReceiptModel:
         except anthropic.AnthropicError as error:  # e.g. no credentials configured
             raise ProviderUnavailableError(502, "The AI provider is not configured.") from error
 
+        usage = Usage.from_response(getattr(response, "usage", None))
+
+        def unusable(reason: InvalidReason) -> InvalidModelOutputError:
+            return InvalidModelOutputError(
+                reason, model=response.model, usage=usage, stop_reason=response.stop_reason
+            )
+
         if response.stop_reason == "refusal":
-            raise InvalidModelOutputError("refusal")
+            raise unusable("refusal")
         if response.stop_reason == "max_tokens":
-            raise InvalidModelOutputError("max_tokens")
+            raise unusable("max_tokens")
         parsed = next(
             (block.parsed_output for block in response.content if block.type == "text"), None
         )
         if parsed is None:
-            raise InvalidModelOutputError("empty")
-        return ModelAnswer(receipt=parsed, model=response.model)
+            raise unusable("empty")
+        return ModelAnswer(
+            receipt=parsed, model=response.model, usage=usage, stop_reason=response.stop_reason
+        )
