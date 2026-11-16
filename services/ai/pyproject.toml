@@ -34,10 +34,12 @@ select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "ANN"]
 [tool.ruff.lint.per-file-ignores]
 # Test doubles stand in for SDK objects, so they take and return Any on purpose.
 "tests/**" = ["ANN401"]
+# Receipt layouts read best one printed line per source line.
+"evals/generate_receipts.py" = ["E501"]
 
 [tool.mypy]
 strict = true
-packages = ["app"]
+packages = ["app", "evals"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

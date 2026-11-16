@@ -1,134 +1,127 @@
-"""Draw synthetic receipt images with Pillow.
+"""Draw synthetic receipts with Pillow. All businesses are fictional.
 
-M5 uses it for the four demo receipts shown on GitHub Pages (`--demo`). M6 extends it
-with random ground truth for the eval dataset. All businesses are fictional.
-
-    uv run python -m evals.generate_receipts --demo
+uv run python -m evals.generate_receipts --demo      # 4 receipts for the Pages demo
+uv run python -m evals.generate_receipts --dataset   # the eval dataset + labels + INDEX.md
 """
 
 import argparse
-from dataclasses import dataclass
+import json
+from collections import Counter
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from evals.render import Layout, draw
+from evals.synthetic import WHY_HARD, build_dataset
 
 WEB_SAMPLES = Path(__file__).parents[3] / "apps" / "web" / "public" / "sample-receipts"
-WIDTH = 420
-MARGIN = 28
-LINE = 26
+DATASET = Path(__file__).parent / "dataset"
 
-
-@dataclass(frozen=True)
-class Receipt:
-    file_name: str
-    header: list[str]
-    lines: list[tuple[str, str]]
-    total: str
-    footer: list[str]
-    faded: bool = False
-
-
-DEMO: list[Receipt] = [
-    Receipt(
-        "padaria-central.png",
+DEMO: dict[str, Layout] = {
+    "padaria-central.png": Layout(
         ["PADARIA CENTRAL LTDA", "Rua das Acacias, 120 - Sao Paulo", "CNPJ 00.000.000/0001-00"],
-        [
-            ("Pao frances (12 un)", "9,60"),
-            ("Cafe com leite x3", "28,50"),
-            ("Bolo de milho", "48,30"),
-        ],
-        "R$ 86,40",
+        [("Pao frances (12 un)", "9,60"), ("Cafe com leite x3", "28,50"), ("Bolo de milho", "48,30")],
+        [("TOTAL", "R$ 86,40", True)],
         ["10/11/2026 08:42", "Obrigado pela preferencia!"],
     ),
-    Receipt(
-        "hotel-aurora.png",
+    "hotel-aurora.png": Layout(
         ["HOTEL AURORA", "Av. Beira-Mar, 2000 - Recife", "Nota fiscal de servico"],
-        [
-            ("Diaria standard x2", "1.560,00"),
-            ("Cafe da manha x2", "180,00"),
-            ("Taxa de servico", "110,00"),
-        ],
-        "R$ 1.850,00",
+        [("Diaria standard x2", "1.560,00"), ("Cafe da manha x2", "180,00"), ("Taxa de servico", "110,00")],
+        [("TOTAL", "R$ 1.850,00", True)],
         ["Check-out 05/11/2026", "Hospede: Ana Souza"],
     ),
-    Receipt(
-        "voo-horizonte.png",
+    "voo-horizonte.png": Layout(
         ["LINHAS AEREAS HORIZONTE", "Bilhete eletronico", "Localizador QX7TRA"],
-        [
-            ("GRU -> REC ida/volta", "1.098,00"),
-            ("Taxa de embarque", "92,00"),
-            ("Bagagem 23kg", "50,00"),
-        ],
-        "R$ 1.240,00",
+        [("GRU -> REC ida/volta", "1.098,00"), ("Taxa de embarque", "92,00"), ("Bagagem 23kg", "50,00")],
+        [("TOTAL", "R$ 1.240,00", True)],
         ["Emitido em 03/11/2026", "Passageiro: Bruno Rocha"],
     ),
-    Receipt(
-        "cupom-ilegivel.png",
+    "cupom-ilegivel.png": Layout(
         ["MERCADO BOM PRECO", "Cupom fiscal", ""],
         [("Itens diversos", "??,??"), ("Desconto", "-?,??")],
-        "R$ ???,??",
+        [("TOTAL", "R$ ???,??", True)],
         ["??/??/2026", ""],
-        faded=True,
+        ink="#9a9a96",
+        blur=2.4,
     ),
-]
+}  # fmt: skip
 
 
-def font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    return ImageFont.load_default(size=size)
+def write_demo(out: Path) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    for name, layout in DEMO.items():
+        draw(layout).save(out / name, optimize=True)
+        print(f"wrote {out / name}")
 
 
-def draw(receipt: Receipt) -> Image.Image:
-    rows = len(receipt.header) + len(receipt.lines) + len(receipt.footer) + 5
-    image = Image.new("RGB", (WIDTH, MARGIN * 2 + rows * LINE), "#fdfcf7")
-    pen = ImageDraw.Draw(image)
-    ink = "#9a9a96" if receipt.faded else "#1b1b1b"
-    y = MARGIN
+def write_dataset(out: Path) -> None:
+    images = out / "images"
+    images.mkdir(parents=True, exist_ok=True)
+    cases = build_dataset()
+    rows: list[dict[str, object]] = []
+    for case in cases:
+        image = f"images/{case.id}.png"
+        draw(case.layout).save(out / image, optimize=True)
+        rows.append(
+            {
+                "id": case.id,
+                "image": image,
+                "split": case.split,
+                "tags": [case.kind, case.locale],
+                "expected": case.expected,
+                "source": "synthetic",
+                "why_hard": WHY_HARD[case.kind],
+            }
+        )
+    with (out / "labels.jsonl").open("w", encoding="utf-8", newline="\n") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    (out / "INDEX.md").write_text(index_markdown(rows), encoding="utf-8", newline="\n")
+    print(f"wrote {len(rows)} cases to {out}")
 
-    def centered(text: str, size: int = 18) -> None:
-        nonlocal y
-        width = pen.textlength(text, font=font(size))
-        pen.text(((WIDTH - width) / 2, y), text, fill=ink, font=font(size))
-        y += LINE
 
-    def row(left: str, right: str, size: int = 17) -> None:
-        nonlocal y
-        pen.text((MARGIN, y), left, fill=ink, font=font(size))
-        width = pen.textlength(right, font=font(size))
-        pen.text((WIDTH - MARGIN - width, y), right, fill=ink, font=font(size))
-        y += LINE
-
-    for i, text in enumerate(receipt.header):
-        centered(text, 22 if i == 0 else 16)
-    y += LINE // 2
-    pen.line((MARGIN, y, WIDTH - MARGIN, y), fill=ink, width=1)
-    y += LINE // 2
-    for item, price in receipt.lines:
-        row(item, price)
-    y += LINE // 2
-    pen.line((MARGIN, y, WIDTH - MARGIN, y), fill=ink, width=2)
-    y += LINE // 2
-    row("TOTAL", receipt.total, 22)
-    y += LINE // 2
-    for text in receipt.footer:
-        centered(text, 15)
-
-    if receipt.faded:
-        # Thermal paper that faded and a shaky photo: the hard case for extraction.
-        image = image.filter(ImageFilter.GaussianBlur(2.4))
-    return image
+def index_markdown(rows: list[dict[str, object]]) -> str:
+    kinds = Counter(str(r["tags"][0]) for r in rows)  # type: ignore[index]
+    splits = Counter(str(r["split"]) for r in rows)
+    lines = [
+        "# Receipt extraction eval: dataset",
+        "",
+        "Generated by `uv run python -m evals.generate_receipts --dataset` (seeded, so it is",
+        "reproducible). Ground truth comes from the generator, never from a model. `null`",
+        "means the right answer is to return null (the receipt is unreadable).",
+        "",
+        f"**{len(rows)} cases**: "
+        + ", ".join(f"{n} {split}" for split, n in sorted(splits.items()))
+        + ". By difficulty: "
+        + ", ".join(f"{kind} {n}" for kind, n in kinds.items())
+        + ".",
+        "",
+        "| id | split | difficulty | locale | merchant | date | total (minor) | currency | category |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for r in rows:
+        e = r["expected"]
+        assert isinstance(e, dict)
+        tags = r["tags"]
+        assert isinstance(tags, list)
+        cells = [e[k] if e[k] is not None else "null" for k in
+                 ("merchant", "date", "total_minor", "currency", "category")]  # fmt: skip
+        lines.append(f"| [{r['id']}](#{r['id']}) | {r['split']} | {tags[0]} | {tags[1]} | "
+                     + " | ".join(str(c) for c in cells) + " |")  # fmt: skip
+    for r in rows:
+        lines += ["", f"## {r['id']}", "", f"*{r['why_hard']}*", "", f"![{r['id']}]({r['image']})"]
+    return "\n".join(lines) + "\n"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--demo", action="store_true", help="write the four demo receipts")
-    parser.add_argument("--out", type=Path, default=WEB_SAMPLES)
+    parser.add_argument("--dataset", action="store_true", help="write the eval dataset")
     args = parser.parse_args()
-    if not args.demo:
-        parser.error("only --demo exists for now (M6 adds the eval dataset)")
-    args.out.mkdir(parents=True, exist_ok=True)
-    for receipt in DEMO:
-        draw(receipt).save(args.out / receipt.file_name, optimize=True)
-        print(f"wrote {args.out / receipt.file_name}")
+    if not (args.demo or args.dataset):
+        parser.error("choose --demo and/or --dataset")
+    if args.demo:
+        write_demo(WEB_SAMPLES)
+    if args.dataset:
+        write_dataset(DATASET)
 
 
 if __name__ == "__main__":
