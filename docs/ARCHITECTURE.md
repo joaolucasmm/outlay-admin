@@ -289,15 +289,11 @@ services/ai/
 
 ### Evals
 
-The dataset has about 20 synthetic receipts plus a few real, anonymized photos. They vary on purpose: PT/EN, BRL/USD/EUR, `dd/mm/yyyy` vs `mm/dd/yyyy`, tips, taxes, discounts, low contrast.
+See [`services/ai/evals/README.md`](../services/ai/evals/README.md). The dataset is 30 seeded synthetic receipts (10 `dev`, 20 `test`, split at random within each difficulty), with ground truth from the generator, never from a model. Each case targets one difficulty: clean, ambiguous `dd/mm` vs `mm/dd` dates, tips/tax/discount, cash and change lines, thousands separators, `$` meaning MXN, low contrast, and unreadable receipts whose right answer is null. Real anonymized photos are still to be added.
 
-Metrics per prompt version:
-- field accuracy (merchant fuzzy ≥ 0.9, date exact after normalization, total exact to the cent, currency exact, category exact);
-- JSON-valid rate;
-- p50/p95 latency;
-- estimated cost per receipt.
+Grading is programmatic, per field: merchant fuzzy ≥ 0.9 after normalizing; date, total in minor units, currency and category exact. An invented value where the answer is null counts as a hallucination. Each variant (model × prompt) runs through the service's real `Extractor` with resume, a per-case wall-clock ceiling, jittered backoff, an `errors.jsonl` sidecar (provider errors, timeouts, a different served model: never scored as zero) and a harness-integrity gate the user approves.
 
-`uv run python -m evals.run --prompts v1 v2` writes `evals/reports/<date>-v1-vs-v2.md` with a comparison table and the worst failures. The README links the latest report.
+`uv run python -m evals.run --variant <name> --model <id> --prompt <v>` writes `evals/runs/<variant>/`; `uv run python -m evals.report` writes `evals/reports/<date>-*.md`: field accuracy with a 95% CI, per-field rates, hallucinations, valid-output rate, p50/p95 latency, measured cost per receipt, a paired bootstrap comparison against the baseline, and the worst cases. Prompt changes are written from `dev` failures only; claims are made on `test`. The README links the latest report.
 
 ---
 

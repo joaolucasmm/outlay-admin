@@ -41,9 +41,9 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] Mock mode with fixtures for the Pages demo; live mode via `VITE_AI_URL`
 
 ## M6 — Evals (~2–3h)
-- [ ] Synthetic receipt generator + `labels.jsonl` (~20 items) + a few real anonymized photos
-- [ ] `evals/run.py`: metrics per prompt version, markdown report
-- [ ] Prompt v2 that measurably beats v1; report committed and linked in the README
+- [ ] Synthetic receipt generator + `labels.jsonl` (~20 items) + a few real anonymized photos — *synthetic part done (30 cases); real photos pending*
+- [x] `evals/run.py`: metrics per prompt version, markdown report
+- [ ] Prompt v2 that measurably beats v1; report committed and linked in the README — *report committed and linked; v2 is +3.0 pts on test, inside the noise, so not "measurably" yet*
 
 ## M7 — Polish & ship (~2h)
 - [ ] Playwright smoke: onboard tenant → edit policy → check receipt
