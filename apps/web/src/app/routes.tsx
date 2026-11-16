@@ -9,6 +9,7 @@ import { CategoriesPage } from '../features/categories/pages/CategoriesPage';
 import { EmployeesPage } from '../features/employees/pages/EmployeesPage';
 import { OnboardingPage } from '../features/onboarding/pages/OnboardingPage';
 import { PoliciesPage } from '../features/policies/pages/PoliciesPage';
+import { ReceiptsPage } from '../features/receipts/pages/ReceiptsPage';
 import { RequirePermission } from '../features/session/components/RequirePermission';
 import { homePathFor } from '../features/session/navigation';
 import { selectPersona } from '../features/session/sessionSlice';
@@ -22,10 +23,6 @@ function HomeRedirect() {
 
 const guard = (permission: Permission, element: ReactNode) => (
   <RequirePermission permission={permission}>{element}</RequirePermission>
-);
-
-const placeholder = (title: string, milestone: string) => (
-  <PlaceholderPage title={title} milestone={milestone} />
 );
 
 export const routes: RouteObject[] = [
@@ -43,7 +40,7 @@ export const routes: RouteObject[] = [
           { path: 'categories', element: guard('tenant:configure', <CategoriesPage />) },
           { path: 'policies', element: guard('tenant:configure', <PoliciesPage />) },
           { path: 'employees', element: guard('tenant:configure', <EmployeesPage />) },
-          { path: 'receipts', element: guard('tenant:configure', placeholder('Receipts', 'M5')) },
+          { path: 'receipts', element: guard('tenant:configure', <ReceiptsPage />) },
           { path: 'audit', element: guard('audit:read', <AuditPage />) },
         ],
       },
