@@ -12,3 +12,6 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# Eval transcripts (bulky; results.jsonl and errors.jsonl are committed)
+services/ai/evals/runs/*/traces/
