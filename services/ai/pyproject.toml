@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Receipt extraction service for Outlay Admin (the LLM extracts, the policy engine decides)."
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=2.8.0",
     "fastapi[standard]>=0.115",
+    "pillow>=13.0.0",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
 ]
@@ -15,6 +17,8 @@ dev = [
     "httpx>=0.28",
     "ruff>=0.8",
     "mypy>=1.13",
+    "pyyaml>=6.0.3",
+    "types-pyyaml>=6.0.12.20261113",
 ]
 
 [tool.uv]
@@ -26,6 +30,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "ANN"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test doubles stand in for SDK objects, so they take and return Any on purpose.
+"tests/**" = ["ANN401"]
 
 [tool.mypy]
 strict = true
