@@ -209,12 +209,12 @@ means the right answer is to return null (the receipt is unreadable).
 
 ## rcpt-029
 
-*Too blurred to read: the right answer is null everywhere.*
+*Faded away (only '?' left) and blurred: the right answer is null everywhere.*
 
 ![rcpt-029](images/rcpt-029.png)
 
 ## rcpt-030
 
-*Too blurred to read: the right answer is null everywhere.*
+*Faded away (only '?' left) and blurred: the right answer is null everywhere.*
 
 ![rcpt-030](images/rcpt-030.png)

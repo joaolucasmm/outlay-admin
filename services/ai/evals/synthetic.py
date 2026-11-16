@@ -7,6 +7,7 @@ so regenerating gives byte-identical labels. All businesses are fictional.
 
 import datetime
 import random
+import re
 import unicodedata
 from dataclasses import dataclass
 
@@ -142,7 +143,7 @@ WHY_HARD = {
     "thousands": "The total uses a thousands separator (1.234,56 vs 1,234.56).",
     "dollar_mx": "Mexican receipt: '$' means MXN, not USD.",
     "low_contrast": "Faded ink and a slight blur, but still legible.",
-    "unreadable": "Too blurred to read: the right answer is null everywhere.",
+    "unreadable": "Faded away (only '?' left) and blurred: the right answer is null everywhere.",
 }
 
 
@@ -154,6 +155,12 @@ class Case:
     locale: str
     expected: dict[str, object]
     layout: Layout
+
+
+def _smudge(text: str) -> str:
+    """Everything but spacing and separators becomes '?' (letters, digits, '$', 'R$'): what is
+    left of a receipt that faded away. Even a legible '$' would give the currency away."""
+    return re.sub(r"[^\s.,:/-]", "?", text)
 
 
 def _date(rng: random.Random, ambiguous: bool) -> datetime.date:
@@ -210,14 +217,22 @@ def _case(rng: random.Random, number: int, kind: str, locale_code: str) -> Case:
         summary.append((loc.change, loc.money(paid - total), False))
 
     unreadable = kind == "unreadable"
+    header = [
+        merchant.upper(),
+        f"{loc.date(day)} {rng.randint(8, 21):02d}:{rng.randint(0, 59):02d}",
+    ]
+    item_rows = [(name, loc.money(price)) for name, price in items]
+    if unreadable:
+        # Blur alone is legible to current models (an earlier version proved it), so the
+        # facts themselves are gone: null is then the only right answer.
+        header = [_smudge(text) for text in header]
+        item_rows = [(_smudge(name), _smudge(amount)) for name, amount in item_rows]
+        summary = [(_smudge(label), _smudge(amount), big) for label, amount, big in summary]
     layout = Layout(
-        header=[
-            merchant.upper(),
-            f"{loc.date(day)} {rng.randint(8, 21):02d}:{rng.randint(0, 59):02d}",
-        ],
-        items=[(name, loc.money(price)) for name, price in items],
+        header=header,
+        items=item_rows,
         summary=summary,
-        footer=[ascii_fold(loc.thanks).strip()],
+        footer=[(_smudge if unreadable else str)(ascii_fold(loc.thanks).strip())],
         ink="#a4a4a0" if kind in ("low_contrast", "unreadable") else "#1b1b1b",
         blur=3.2 if unreadable else 0.7 if kind == "low_contrast" else 0.0,
         rotate=round(rng.uniform(-1.2, 1.2), 2),
