@@ -165,6 +165,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/receipts/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Read a receipt image into structured fields with an LLM.
+         * @description The model only extracts; the policy engine decides compliance. Bad model output never fails the request: after one retry the response has `confidence: low` and null fields. Provider outages are 502/503.
+         */
+        post: operations["extractReceipt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/demo/personas": {
         parameters: {
             query?: never;
@@ -438,6 +458,30 @@ export interface components {
             status: "compliant" | "needs_approval" | "violation";
             findings: components["schemas"]["PolicyFinding"][];
             requiredApprovalLevels: components["schemas"]["ApprovalLevels"];
+        };
+        ReceiptCategoryHint: {
+            code: string;
+            name: string;
+        };
+        /** @enum {string} */
+        ReceiptConfidence: "high" | "medium" | "low";
+        ReceiptExtraction: {
+            merchant: string | null;
+            /** Format: date */
+            date: string | null;
+            /** @description Total in minor units of `currency`. */
+            totalMinor: number | null;
+            /** @description ISO 4217. */
+            currency: string | null;
+            /** @description One of the hinted category codes, or null. */
+            suggestedCategoryCode: string | null;
+            confidence: components["schemas"]["ReceiptConfidence"];
+            /** @description Why fields are missing or confidence is lowered, if they are. */
+            notes: string | null;
+            /** @description The model that produced the extraction. */
+            model: string;
+            promptVersion: string;
+            latencyMs: number;
         };
         Problem: {
             type: string;
@@ -777,6 +821,43 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+        };
+    };
+    extractReceipt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /**
+                     * Format: binary
+                     * @description JPEG, PNG or WebP, up to 5 MB.
+                     */
+                    image: string;
+                    /** @description JSON array of ReceiptCategoryHint: the tenant's active categories, so the model can suggest one of them. */
+                    categories?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The extracted fields. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceiptExtraction"];
+                };
+            };
+            413: components["responses"]["Problem"];
+            415: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            502: components["responses"]["Problem"];
+            503: components["responses"]["Problem"];
         };
     };
     listPersonas: {

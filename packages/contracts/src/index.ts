@@ -45,3 +45,6 @@ export type ListTenantsQuery = NonNullable<paths['/tenants']['get']['parameters'
 export type ListAuditEventsQuery = NonNullable<
   paths['/audit-events']['get']['parameters']['query']
 >;
+export type ReceiptCategoryHint = Schemas['ReceiptCategoryHint'];
+export type ReceiptConfidence = Schemas['ReceiptConfidence'];
+export type ReceiptExtraction = Schemas['ReceiptExtraction'];
