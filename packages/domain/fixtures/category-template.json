@@ -1,0 +1,73 @@
+{
+  "$comment": "The standard program template applied during onboarding. Amounts are major units in a '1x' currency, scaled per currency to look plausible; each rule is [limit, receiptRequiredAbove, approvalLevels], and a missing role means 'not allowed'. Read by packages/domain (TypeScript) and services/tenant-api (Java).",
+  "scale": {
+    "BRL": 5,
+    "MXN": 20
+  },
+  "categories": [
+    {
+      "code": "MEALS",
+      "name": "Meals",
+      "glAccount": "6100",
+      "active": true,
+      "rules": {
+        "employee": [50, 25, 0],
+        "manager": [80, 25, 0],
+        "director": [150, 25, 0]
+      }
+    },
+    {
+      "code": "TRAVEL",
+      "name": "Travel",
+      "glAccount": "6200",
+      "active": true,
+      "rules": {
+        "employee": [500, 0, 1],
+        "manager": [1000, 0, 1],
+        "director": [3000, 0, 0]
+      }
+    },
+    {
+      "code": "LODGING",
+      "name": "Lodging",
+      "glAccount": "6210",
+      "active": true,
+      "rules": {
+        "employee": [200, 0, 1],
+        "manager": [300, 0, 1],
+        "director": [500, 0, 0]
+      }
+    },
+    {
+      "code": "OFFICE",
+      "name": "Office supplies",
+      "glAccount": "6300",
+      "active": true,
+      "rules": {
+        "employee": [100, 30, 0],
+        "manager": [200, 30, 0],
+        "director": [300, 30, 0]
+      }
+    },
+    {
+      "code": "SOFTWARE",
+      "name": "Software subscriptions",
+      "glAccount": null,
+      "active": false,
+      "rules": {
+        "employee": [50, 0, 1],
+        "manager": [200, 0, 1],
+        "director": [1000, 0, 1]
+      }
+    },
+    {
+      "code": "CLIENT_ENT",
+      "name": "Client entertainment",
+      "glAccount": "6400",
+      "active": true,
+      "rules": {
+        "director": [500, 0, 2]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1083 @@
+{
+  "$comment": "The tenant program rules as data. packages/domain (Vitest) and services/tenant-api (JUnit) both run every case, so the TypeScript and Java implementations cannot drift apart.",
+  "programWriteAccess": [
+    {
+      "role": "support_operator",
+      "status": "provisioning",
+      "expect": "ok"
+    },
+    {
+      "role": "program_admin",
+      "status": "provisioning",
+      "expect": "tenant_not_active"
+    },
+    {
+      "role": "support_operator",
+      "status": "active",
+      "expect": "forbidden"
+    },
+    {
+      "role": "program_admin",
+      "status": "active",
+      "expect": "ok"
+    },
+    {
+      "role": "support_operator",
+      "status": "suspended",
+      "expect": "forbidden"
+    },
+    {
+      "role": "program_admin",
+      "status": "suspended",
+      "expect": "tenant_not_active"
+    },
+    {
+      "role": "support_operator",
+      "status": "deprovisioned",
+      "expect": "forbidden"
+    },
+    {
+      "role": "program_admin",
+      "status": "deprovisioned",
+      "expect": "tenant_not_active"
+    }
+  ],
+  "categoryFields": [
+    {
+      "name": "normalises valid fields",
+      "input": {
+        "code": " MEALS ",
+        "name": " Meals ",
+        "glAccount": " 6100 "
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "code": "MEALS",
+          "name": "Meals",
+          "glAccount": "6100"
+        }
+      }
+    },
+    {
+      "name": "turns a blank GL account into null",
+      "input": {
+        "glAccount": "  "
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "glAccount": null
+        }
+      }
+    },
+    {
+      "name": "keeps a null GL account null",
+      "input": {
+        "glAccount": null
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "glAccount": null
+        }
+      }
+    },
+    {
+      "name": "only checks the fields that are present",
+      "input": {},
+      "expect": {
+        "ok": true,
+        "value": {}
+      }
+    },
+    {
+      "name": "accepts a 20-character code",
+      "input": {
+        "code": "ABBBBBBBBBBBBBBBBBBB"
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "code": "ABBBBBBBBBBBBBBBBBBB"
+        }
+      }
+    },
+    {
+      "name": "accepts a 60-character name",
+      "input": {
+        "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    {
+      "name": "rejects code \"meals\"",
+      "input": {
+        "code": "meals"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "code",
+            "message": "Use 2–20 capital letters, digits or _, starting with a letter (e.g. MEALS)."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects code \"M\"",
+      "input": {
+        "code": "M"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "code",
+            "message": "Use 2–20 capital letters, digits or _, starting with a letter (e.g. MEALS)."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects code \"1MEALS\"",
+      "input": {
+        "code": "1MEALS"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "code",
+            "message": "Use 2–20 capital letters, digits or _, starting with a letter (e.g. MEALS)."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects code \"MEALS-2\"",
+      "input": {
+        "code": "MEALS-2"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "code",
+            "message": "Use 2–20 capital letters, digits or _, starting with a letter (e.g. MEALS)."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects code \"AAAAAAAAAAAAAAAAAAAAA\"",
+      "input": {
+        "code": "AAAAAAAAAAAAAAAAAAAAA"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "code",
+            "message": "Use 2–20 capital letters, digits or _, starting with a letter (e.g. MEALS)."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects a name over 60 characters",
+      "input": {
+        "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "name",
+            "message": "Enter a name of up to 60 characters."
+          }
+        ]
+      }
+    },
+    {
+      "name": "reports every invalid field",
+      "input": {
+        "code": "x",
+        "name": " ",
+        "glAccount": "111111111111111111111"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "code",
+            "message": "Use 2–20 capital letters, digits or _, starting with a letter (e.g. MEALS)."
+          },
+          {
+            "field": "name",
+            "message": "Enter a name of up to 60 characters."
+          },
+          {
+            "field": "glAccount",
+            "message": "Keep the GL account under 20 characters."
+          }
+        ]
+      }
+    }
+  ],
+  "policyRule": [
+    {
+      "name": "accepts a valid rule",
+      "input": {
+        "limitMinor": 10000,
+        "receiptRequiredAboveMinor": 5000,
+        "approvalLevels": 1
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "limitMinor": 10000,
+          "receiptRequiredAboveMinor": 5000,
+          "approvalLevels": 1
+        }
+      }
+    },
+    {
+      "name": "accepts a threshold equal to the limit",
+      "input": {
+        "limitMinor": 5000,
+        "receiptRequiredAboveMinor": 5000,
+        "approvalLevels": 0
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "limitMinor": 5000,
+          "receiptRequiredAboveMinor": 5000,
+          "approvalLevels": 0
+        }
+      }
+    },
+    {
+      "name": "accepts zero everywhere",
+      "input": {
+        "limitMinor": 0,
+        "receiptRequiredAboveMinor": 0,
+        "approvalLevels": 2
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "limitMinor": 0,
+          "receiptRequiredAboveMinor": 0,
+          "approvalLevels": 2
+        }
+      }
+    },
+    {
+      "name": "rejects a negative limit (and the threshold is then above it)",
+      "input": {
+        "limitMinor": -1,
+        "receiptRequiredAboveMinor": 0,
+        "approvalLevels": 0
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "limitMinor",
+            "message": "The limit must be zero or more."
+          },
+          {
+            "field": "receiptRequiredAboveMinor",
+            "message": "The receipt threshold cannot be above the limit."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects a negative threshold",
+      "input": {
+        "limitMinor": 100,
+        "receiptRequiredAboveMinor": -5,
+        "approvalLevels": 0
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "receiptRequiredAboveMinor",
+            "message": "The receipt threshold must be zero or more."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects a threshold above the limit",
+      "input": {
+        "limitMinor": 100,
+        "receiptRequiredAboveMinor": 101,
+        "approvalLevels": 0
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "receiptRequiredAboveMinor",
+            "message": "The receipt threshold cannot be above the limit."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects three approval levels",
+      "input": {
+        "limitMinor": 100,
+        "receiptRequiredAboveMinor": 0,
+        "approvalLevels": 3
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "approvalLevels",
+            "message": "Approvals must be 0, 1 or 2."
+          }
+        ]
+      }
+    },
+    {
+      "name": "reports every invalid field",
+      "input": {
+        "limitMinor": -1,
+        "receiptRequiredAboveMinor": -1,
+        "approvalLevels": -1
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "limitMinor",
+            "message": "The limit must be zero or more."
+          },
+          {
+            "field": "receiptRequiredAboveMinor",
+            "message": "The receipt threshold must be zero or more."
+          },
+          {
+            "field": "approvalLevels",
+            "message": "Approvals must be 0, 1 or 2."
+          }
+        ]
+      }
+    }
+  ],
+  "employeeRow": [
+    {
+      "name": "normalises a valid row",
+      "input": {
+        "name": " Ana Souza ",
+        "email": " Ana@Bluefin.Example ",
+        "role": " Manager ",
+        "costCenter": "OPS"
+      },
+      "expect": {
+        "ok": true,
+        "value": {
+          "name": "Ana Souza",
+          "email": "ana@bluefin.example",
+          "role": "manager",
+          "costCenter": "OPS"
+        }
+      }
+    },
+    {
+      "name": "reports every invalid field",
+      "input": {
+        "name": " ",
+        "email": "nope",
+        "role": "ceo",
+        "costCenter": ""
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "name",
+            "message": "Name is required (up to 100 characters)."
+          },
+          {
+            "field": "email",
+            "message": "Enter a valid email address."
+          },
+          {
+            "field": "role",
+            "message": "Role must be employee, manager or director."
+          },
+          {
+            "field": "costCenter",
+            "message": "Cost center is required (up to 40 characters)."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects a name over 100 characters",
+      "input": {
+        "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "email": "ana@bluefin.example",
+        "role": "manager",
+        "costCenter": "OPS"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "name",
+            "message": "Name is required (up to 100 characters)."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects an email over 254 characters",
+      "input": {
+        "name": "Ana Souza",
+        "email": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@b.co",
+        "role": "manager",
+        "costCenter": "OPS"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "email",
+            "message": "Enter a valid email address."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects an email with a space",
+      "input": {
+        "name": "Ana Souza",
+        "email": "a b@c.com",
+        "role": "manager",
+        "costCenter": "OPS"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "email",
+            "message": "Enter a valid email address."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects an email without a dot in the domain",
+      "input": {
+        "name": "Ana Souza",
+        "email": "ana@bluefin",
+        "role": "manager",
+        "costCenter": "OPS"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "email",
+            "message": "Enter a valid email address."
+          }
+        ]
+      }
+    },
+    {
+      "name": "rejects a cost center over 40 characters",
+      "input": {
+        "name": "Ana Souza",
+        "email": "ana@bluefin.example",
+        "role": "manager",
+        "costCenter": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "expect": {
+        "ok": false,
+        "errors": [
+          {
+            "field": "costCenter",
+            "message": "Cost center is required (up to 40 characters)."
+          }
+        ]
+      }
+    }
+  ],
+  "employeeImport": [
+    {
+      "name": "splits valid and invalid rows, keeping their positions",
+      "rows": [
+        {
+          "name": "Ana Souza",
+          "email": "ana@bluefin.example",
+          "role": "manager",
+          "costCenter": "OPS"
+        },
+        {
+          "name": "Ana Souza",
+          "email": "bad",
+          "role": "manager",
+          "costCenter": "OPS"
+        },
+        {
+          "name": "Ana Souza",
+          "email": "bo@bluefin.example",
+          "role": "manager",
+          "costCenter": "OPS"
+        }
+      ],
+      "existingEmails": [],
+      "expect": {
+        "valid": [0, 2],
+        "invalid": [
+          {
+            "index": 1,
+            "errors": [
+              {
+                "field": "email",
+                "message": "Enter a valid email address."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "flags emails the tenant already has, ignoring case",
+      "rows": [
+        {
+          "name": "Ana Souza",
+          "email": "ana@bluefin.example",
+          "role": "manager",
+          "costCenter": "OPS"
+        }
+      ],
+      "existingEmails": ["ANA@bluefin.example"],
+      "expect": {
+        "valid": [],
+        "invalid": [
+          {
+            "index": 0,
+            "errors": [
+              {
+                "field": "email",
+                "message": "An employee with this email already exists."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "flags every copy of an email repeated in the file",
+      "rows": [
+        {
+          "name": "Ana Souza",
+          "email": "ana@bluefin.example",
+          "role": "manager",
+          "costCenter": "OPS"
+        },
+        {
+          "name": "Ana S.",
+          "email": "ANA@bluefin.example",
+          "role": "manager",
+          "costCenter": "OPS"
+        }
+      ],
+      "existingEmails": [],
+      "expect": {
+        "valid": [],
+        "invalid": [
+          {
+            "index": 0,
+            "errors": [
+              {
+                "field": "email",
+                "message": "This email appears more than once in the file."
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "errors": [
+              {
+                "field": "email",
+                "message": "This email appears more than once in the file."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "reports an email that is both existing and repeated twice",
+      "rows": [
+        {
+          "name": "Ana Souza",
+          "email": "ana@bluefin.example",
+          "role": "manager",
+          "costCenter": "OPS"
+        },
+        {
+          "name": "Ana Souza",
+          "email": "ana@bluefin.example",
+          "role": "manager",
+          "costCenter": "OPS"
+        }
+      ],
+      "existingEmails": ["ana@bluefin.example"],
+      "expect": {
+        "valid": [],
+        "invalid": [
+          {
+            "index": 0,
+            "errors": [
+              {
+                "field": "email",
+                "message": "An employee with this email already exists."
+              },
+              {
+                "field": "email",
+                "message": "This email appears more than once in the file."
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "errors": [
+              {
+                "field": "email",
+                "message": "An employee with this email already exists."
+              },
+              {
+                "field": "email",
+                "message": "This email appears more than once in the file."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "does not add duplicate checks to a row that is already invalid",
+      "rows": [
+        {
+          "name": "Ana Souza",
+          "email": "ana@bluefin.example",
+          "role": "ceo",
+          "costCenter": "OPS"
+        },
+        {
+          "name": "Ana Souza",
+          "email": "ana@bluefin.example",
+          "role": "ceo",
+          "costCenter": "OPS"
+        }
+      ],
+      "existingEmails": ["ana@bluefin.example"],
+      "expect": {
+        "valid": [],
+        "invalid": [
+          {
+            "index": 0,
+            "errors": [
+              {
+                "field": "role",
+                "message": "Role must be employee, manager or director."
+              }
+            ]
+          },
+          {
+            "index": 1,
+            "errors": [
+              {
+                "field": "role",
+                "message": "Role must be employee, manager or director."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "accepts an empty file",
+      "rows": [],
+      "existingEmails": [],
+      "expect": {
+        "valid": [],
+        "invalid": []
+      }
+    }
+  ],
+  "template": [
+    {
+      "name": "the full template in USD (scale 1)",
+      "tenant": {
+        "id": "tnt_cedarpine",
+        "currency": "USD"
+      },
+      "skipCodes": [],
+      "expect": {
+        "categories": [
+          {
+            "id": "cat_cedarpine_meals",
+            "tenantId": "tnt_cedarpine",
+            "code": "MEALS",
+            "name": "Meals",
+            "glAccount": "6100",
+            "active": true
+          },
+          {
+            "id": "cat_cedarpine_travel",
+            "tenantId": "tnt_cedarpine",
+            "code": "TRAVEL",
+            "name": "Travel",
+            "glAccount": "6200",
+            "active": true
+          },
+          {
+            "id": "cat_cedarpine_lodging",
+            "tenantId": "tnt_cedarpine",
+            "code": "LODGING",
+            "name": "Lodging",
+            "glAccount": "6210",
+            "active": true
+          },
+          {
+            "id": "cat_cedarpine_office",
+            "tenantId": "tnt_cedarpine",
+            "code": "OFFICE",
+            "name": "Office supplies",
+            "glAccount": "6300",
+            "active": true
+          },
+          {
+            "id": "cat_cedarpine_software",
+            "tenantId": "tnt_cedarpine",
+            "code": "SOFTWARE",
+            "name": "Software subscriptions",
+            "glAccount": null,
+            "active": false
+          },
+          {
+            "id": "cat_cedarpine_client_ent",
+            "tenantId": "tnt_cedarpine",
+            "code": "CLIENT_ENT",
+            "name": "Client entertainment",
+            "glAccount": "6400",
+            "active": true
+          }
+        ],
+        "rules": [
+          {
+            "id": "pol_cedarpine_meals_employee",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_meals",
+            "role": "employee",
+            "limitMinor": 5000,
+            "receiptRequiredAboveMinor": 2500,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_cedarpine_meals_manager",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_meals",
+            "role": "manager",
+            "limitMinor": 8000,
+            "receiptRequiredAboveMinor": 2500,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_cedarpine_meals_director",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_meals",
+            "role": "director",
+            "limitMinor": 15000,
+            "receiptRequiredAboveMinor": 2500,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_cedarpine_travel_employee",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_travel",
+            "role": "employee",
+            "limitMinor": 50000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_cedarpine_travel_manager",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_travel",
+            "role": "manager",
+            "limitMinor": 100000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_cedarpine_travel_director",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_travel",
+            "role": "director",
+            "limitMinor": 300000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_cedarpine_lodging_employee",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_lodging",
+            "role": "employee",
+            "limitMinor": 20000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_cedarpine_lodging_manager",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_lodging",
+            "role": "manager",
+            "limitMinor": 30000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_cedarpine_lodging_director",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_lodging",
+            "role": "director",
+            "limitMinor": 50000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_cedarpine_office_employee",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_office",
+            "role": "employee",
+            "limitMinor": 10000,
+            "receiptRequiredAboveMinor": 3000,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_cedarpine_office_manager",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_office",
+            "role": "manager",
+            "limitMinor": 20000,
+            "receiptRequiredAboveMinor": 3000,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_cedarpine_office_director",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_office",
+            "role": "director",
+            "limitMinor": 30000,
+            "receiptRequiredAboveMinor": 3000,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_cedarpine_software_employee",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_software",
+            "role": "employee",
+            "limitMinor": 5000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_cedarpine_software_manager",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_software",
+            "role": "manager",
+            "limitMinor": 20000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_cedarpine_software_director",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_software",
+            "role": "director",
+            "limitMinor": 100000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_cedarpine_client_ent_director",
+            "tenantId": "tnt_cedarpine",
+            "categoryId": "cat_cedarpine_client_ent",
+            "role": "director",
+            "limitMinor": 50000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "BRL amounts are scaled and existing codes are skipped",
+      "tenant": {
+        "id": "tnt_bluefin",
+        "currency": "BRL"
+      },
+      "skipCodes": ["MEALS", "SOFTWARE"],
+      "expect": {
+        "categories": [
+          {
+            "id": "cat_bluefin_travel",
+            "tenantId": "tnt_bluefin",
+            "code": "TRAVEL",
+            "name": "Travel",
+            "glAccount": "6200",
+            "active": true
+          },
+          {
+            "id": "cat_bluefin_lodging",
+            "tenantId": "tnt_bluefin",
+            "code": "LODGING",
+            "name": "Lodging",
+            "glAccount": "6210",
+            "active": true
+          },
+          {
+            "id": "cat_bluefin_office",
+            "tenantId": "tnt_bluefin",
+            "code": "OFFICE",
+            "name": "Office supplies",
+            "glAccount": "6300",
+            "active": true
+          },
+          {
+            "id": "cat_bluefin_client_ent",
+            "tenantId": "tnt_bluefin",
+            "code": "CLIENT_ENT",
+            "name": "Client entertainment",
+            "glAccount": "6400",
+            "active": true
+          }
+        ],
+        "rules": [
+          {
+            "id": "pol_bluefin_travel_employee",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_travel",
+            "role": "employee",
+            "limitMinor": 250000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_bluefin_travel_manager",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_travel",
+            "role": "manager",
+            "limitMinor": 500000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_bluefin_travel_director",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_travel",
+            "role": "director",
+            "limitMinor": 1500000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_bluefin_lodging_employee",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_lodging",
+            "role": "employee",
+            "limitMinor": 100000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_bluefin_lodging_manager",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_lodging",
+            "role": "manager",
+            "limitMinor": 150000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 1
+          },
+          {
+            "id": "pol_bluefin_lodging_director",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_lodging",
+            "role": "director",
+            "limitMinor": 250000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_bluefin_office_employee",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_office",
+            "role": "employee",
+            "limitMinor": 50000,
+            "receiptRequiredAboveMinor": 15000,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_bluefin_office_manager",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_office",
+            "role": "manager",
+            "limitMinor": 100000,
+            "receiptRequiredAboveMinor": 15000,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_bluefin_office_director",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_office",
+            "role": "director",
+            "limitMinor": 150000,
+            "receiptRequiredAboveMinor": 15000,
+            "approvalLevels": 0
+          },
+          {
+            "id": "pol_bluefin_client_ent_director",
+            "tenantId": "tnt_bluefin",
+            "categoryId": "cat_bluefin_client_ent",
+            "role": "director",
+            "limitMinor": 250000,
+            "receiptRequiredAboveMinor": 0,
+            "approvalLevels": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "nothing left to add",
+      "tenant": {
+        "id": "tnt_orbital",
+        "currency": "MXN"
+      },
+      "skipCodes": ["MEALS", "TRAVEL", "LODGING", "OFFICE", "SOFTWARE", "CLIENT_ENT"],
+      "expect": {
+        "categories": [],
+        "rules": []
+      }
+    }
+  ]
+}
