@@ -50,7 +50,7 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] Empty/loading/error states everywhere; keyboard a11y pass
 - [x] README: pitch, GIF, live link, diagram, run instructions, decisions, "next steps"
 - [x] 3–4 short ADRs in `docs/adr/`
-- [ ] Pin the repo on GitHub; add it as the first project on the portfolio — *repo About set (description, website, topics); pinning and the portfolio are the owner's*
+- [x] Pin the repo on GitHub; add it as the first project on the portfolio
 
 **Total for submission: ~18–24h**
 
