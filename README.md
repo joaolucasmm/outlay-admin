@@ -42,7 +42,7 @@ flowchart LR
 ```
 
 - **Contract first.** `openapi.yaml` is the single source of truth. The web app only uses generated types; the Spring Boot service implements interfaces generated from the same file, and its integration tests validate every response against it. CI fails if the generated TypeScript types are stale.
-- **Two backends, one behavior.** The browser demo runs on an MSW mock; `services/tenant-api` (Spring Boot, MySQL) serves tenants, lifecycle and audit for real. Both run the same lifecycle cases from one JSON fixture, use the same seed ids and answer with the same Problem Details, and a parity test repeats the mock's scenarios against Java.
+- **Two backends, one behavior.** The browser demo runs on an MSW mock; `services/tenant-api` (Spring Boot, MySQL) serves the whole admin API for real. Both run the same rules from shared JSON fixtures, serve the same seed (the Java one is generated from the mock's), and answer with the same Problem Details; parity tests repeat the mock's scenarios against Java, and CI runs the end-to-end main flow against it.
 - **The LLM extracts, the policy engine decides.** The model turns a receipt into fields; a person reviews them; `checkExpense` (pure TypeScript) decides and explains each finding. Model confidence never reaches the engine ([ADR 0003](docs/adr/0003-policy-engine-judges-a-reviewed-expense.md)).
 - **State:** server data lives only in RTK Query (tag invalidation, infinite queries). Redux slices hold the session and the persisted onboarding draft.
 
@@ -54,6 +54,7 @@ flowchart LR
 | Provisioning is real, resumable client calls          | [ADR 0004](docs/adr/0004-client-orchestrated-resumable-provisioning.md)      |
 | Receipt extraction degrades instead of failing        | [ADR 0005](docs/adr/0005-receipt-extraction-degrades-instead-of-failing.md)  |
 | The demo persona header is a Spring Security filter   | [ADR 0006](docs/adr/0006-demo-persona-header-is-a-spring-security-filter.md) |
+| The Java demo seed is generated from the mock         | [ADR 0007](docs/adr/0007-the-java-demo-seed-is-generated-from-the-mock.md)   |
 
 Full design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · domain glossary: [`CONTEXT.md`](CONTEXT.md) · plan and status: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -101,29 +102,33 @@ Point the web app at it with `VITE_AI_MODE=live VITE_AI_URL=http://localhost:800
 
 Spring Boot tenant API (needs Docker; JDK 21 to run its tests outside Docker):
 
-````bash
+```bash
 docker compose up --build                     # MySQL 8.4 + services/tenant-api on :8080 (demo profile)
 VITE_API_MODE=live VITE_API_URL=http://localhost:8080/api/v1 pnpm dev
 cd services/tenant-api && ./mvnw verify       # unit + Testcontainers integration tests
-``` Environment variables are documented in [`.env.example`](.env.example). The demo GIF is regenerated with `CAPTURE_DEMO=1 pnpm --filter web exec playwright test demo`, then `uv run python ../../scripts/make_demo_gif.py` from `services/ai`.
+pnpm seed:export                              # regenerate the Java demo seed after changing mock fixtures
+```
+
+Environment variables are documented in [`.env.example`](.env.example). The demo GIF is regenerated with `CAPTURE_DEMO=1 pnpm --filter web exec playwright test demo`, then `uv run python ../../scripts/make_demo_gif.py` from `services/ai`.
 
 ## Repository layout
 
-````
-
-apps/web/ React app (features/<feature>/, shared/ui, mocks/ for MSW, e2e/ for Playwright)
-packages/contracts/ openapi.yaml + generated types
-packages/domain/ pure TypeScript: lifecycle, permissions, policy engine, validation
-services/ai/ FastAPI receipt extraction + evals/
-services/tenant-api/ Spring Boot: tenants, lifecycle, audit (MySQL, Flyway)
-docs/ architecture, roadmap, ADRs, media
-
+```
+apps/web/            React app (features/<feature>/, shared/ui, mocks/ for MSW, e2e/ for Playwright)
+packages/contracts/  openapi.yaml + generated types
+packages/domain/     pure TypeScript: lifecycle, permissions, policy engine, validation; fixtures/ shared with Java
+services/ai/         FastAPI receipt extraction + evals/
+services/tenant-api/ Spring Boot: tenants, lifecycle, audit, program (MySQL, Flyway)
+scripts/             demo GIF assembly, Java demo seed export
+docs/                architecture, roadmap, ADRs, media
 ```
 
 ## What I'd do next
 
-- **Tenant program in Java (M8b):** categories, policy rules, employees and templates in the Spring Boot service, so live mode covers every page.
 - **Evals:** add real anonymized receipt photos, grow the set so a few points of difference are measurable, write a v3 prompt from new dev cases that fixes v2's regression, and only then consider making `claude-haiku-5-5` the default.
 - **Product:** pick a specific employee (not just a role) when checking a receipt, export the filtered audit log as CSV, and support PDF receipts.
 - **Production concerns the demo skips:** real authentication and per-user audit actors, server-side rate limiting, and observability for the AI service.
+
+```
+
 ```
