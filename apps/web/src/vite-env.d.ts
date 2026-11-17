@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   /** `mock` (default) starts MSW in the browser; `live` talks to a real backend. */
   readonly VITE_API_MODE?: 'mock' | 'live';
+  /** The tenant API base URL in live mode, e.g. `http://localhost:8080/api/v1`. */
+  readonly VITE_API_URL?: string;
   readonly VITE_AI_MODE?: 'mock' | 'live';
   readonly VITE_AI_URL?: string;
 }
