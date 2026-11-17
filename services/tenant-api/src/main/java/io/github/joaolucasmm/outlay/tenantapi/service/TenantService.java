@@ -7,6 +7,7 @@ import io.github.joaolucasmm.outlay.tenantapi.api.model.Tenant;
 import io.github.joaolucasmm.outlay.tenantapi.api.model.TenantCreate;
 import io.github.joaolucasmm.outlay.tenantapi.api.model.TenantPage;
 import io.github.joaolucasmm.outlay.tenantapi.api.model.TenantStatus;
+import io.github.joaolucasmm.outlay.tenantapi.domain.FieldError;
 import io.github.joaolucasmm.outlay.tenantapi.domain.Lifecycle;
 import io.github.joaolucasmm.outlay.tenantapi.domain.NewTenant;
 import io.github.joaolucasmm.outlay.tenantapi.domain.Result;
@@ -71,7 +72,7 @@ public class TenantService {
           // A Program Admin only ever sees their own tenant.
           if (!caller.isOperator()) where.add(cb.equal(root.get("id"), caller.tenantId()));
           if (!search.isEmpty()) {
-            where.add(cb.like(cb.lower(root.get("name")), "%" + escapeLike(search) + "%", '\\'));
+            where.add(cb.like(cb.lower(root.get("name")), "%" + Cursor.escapeLike(search) + "%", '\\'));
           }
           if (status != null) where.add(cb.equal(root.get("status"), status.getValue()));
           if (after != null) {
@@ -115,9 +116,9 @@ public class TenantService {
     var result = NewTenant.validate(body.getName(), body.getCountry(), body.getCurrency());
     NewTenant.Valid valid =
         switch (result) {
-          case Result.Err<NewTenant.Valid, List<NewTenant.FieldError>>(var errors) ->
+          case Result.Err<NewTenant.Valid, List<FieldError>>(var errors) ->
               throw ApiProblem.invalidInput(errors);
-          case Result.Ok<NewTenant.Valid, List<NewTenant.FieldError>>(var value) -> value;
+          case Result.Ok<NewTenant.Valid, List<FieldError>>(var value) -> value;
         };
 
     String nameKey = NewTenant.nameKey(valid.name());
@@ -194,9 +195,5 @@ public class TenantService {
     byte[] bytes = new byte[2];
     ThreadLocalRandom.current().nextBytes(bytes);
     return HexFormat.of().formatHex(bytes);
-  }
-
-  private static String escapeLike(String value) {
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
   }
 }

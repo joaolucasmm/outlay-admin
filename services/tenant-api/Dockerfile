@@ -1,7 +1,9 @@
-# Build from the repository root (see compose.yaml): the build reads packages/contracts/openapi.yaml.
+# Build from the repository root (see compose.yaml): the build reads the contract and the
+# program template from packages/.
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /src
 COPY packages/contracts/openapi.yaml packages/contracts/openapi.yaml
+COPY packages/domain/fixtures/category-template.json packages/domain/fixtures/category-template.json
 COPY services/tenant-api/.mvn services/tenant-api/.mvn
 COPY services/tenant-api/mvnw services/tenant-api/pom.xml services/tenant-api/
 WORKDIR /src/services/tenant-api

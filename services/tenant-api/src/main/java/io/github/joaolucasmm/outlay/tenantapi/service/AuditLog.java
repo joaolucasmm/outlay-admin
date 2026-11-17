@@ -1,8 +1,10 @@
 package io.github.joaolucasmm.outlay.tenantapi.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.joaolucasmm.outlay.tenantapi.api.model.AuditEvent;
 import io.github.joaolucasmm.outlay.tenantapi.api.model.AuditEventPage;
-import io.github.joaolucasmm.outlay.tenantapi.domain.NewTenant.FieldError;
+import io.github.joaolucasmm.outlay.tenantapi.domain.FieldError;
 import io.github.joaolucasmm.outlay.tenantapi.persistence.AuditEventEntity;
 import io.github.joaolucasmm.outlay.tenantapi.persistence.AuditEventRepository;
 import io.github.joaolucasmm.outlay.tenantapi.security.Caller;
@@ -39,10 +41,19 @@ public class AuditLog {
 
   private static final Sort NEWEST_FIRST = Sort.by(Sort.Order.desc("at"), Sort.Order.desc("id"));
 
-  private final AuditEventRepository events;
+  private static final TypeReference<Map<String, Object>> MAP = new TypeReference<>() {};
 
-  public AuditLog(AuditEventRepository events) {
+  private final AuditEventRepository events;
+  private final ObjectMapper json;
+
+  public AuditLog(AuditEventRepository events, ObjectMapper json) {
     this.events = events;
+    this.json = json;
+  }
+
+  /** A DTO or record as the JSON object the audit log stores, with the API's date format. */
+  public Map<String, Object> asMap(Object value) {
+    return json.convertValue(value, MAP);
   }
 
   @Transactional

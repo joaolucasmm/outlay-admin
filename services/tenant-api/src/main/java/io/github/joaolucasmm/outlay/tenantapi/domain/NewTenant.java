@@ -11,9 +11,6 @@ import java.util.regex.Pattern;
 /** Validation for a new tenant. Mirrors packages/domain/src/tenant.ts. */
 public final class NewTenant {
 
-  /** A problem with one input field, for 422 {@code errors[]}. */
-  public record FieldError(String field, String message) {}
-
   /** A validated tenant: name normalized, country and currency supported. */
   public record Valid(String name, String country, String currency) {}
 
@@ -51,7 +48,7 @@ public final class NewTenant {
 
   /** Trims and collapses repeated whitespace. */
   public static String normalizeName(String name) {
-    return SPACES.matcher(name.strip()).replaceAll(" ");
+    return SPACES.matcher(Text.trim(name)).replaceAll(" ");
   }
 
   /** Tenant names are unique ignoring case and repeated spaces; this is the unique key. */

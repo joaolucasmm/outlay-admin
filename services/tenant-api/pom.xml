@@ -22,6 +22,7 @@
     <!-- 1.21.3 (Boot's default) speaks a Docker API version that Docker Engine 29 rejects. -->
     <testcontainers.version>1.21.4</testcontainers.version>
     <openapi-generator.version>7.14.0</openapi-generator.version>
+    <jackson-databind-nullable.version>0.2.7</jackson-databind-nullable.version>
     <json-schema-validator.version>1.5.8</json-schema-validator.version>
     <contract.spec>${project.basedir}/../../packages/contracts/openapi.yaml</contract.spec>
   </properties>
@@ -42,6 +43,11 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+      <version>${jackson-databind-nullable.version}</version>
     </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>
@@ -97,6 +103,18 @@
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <!-- The program template is shared with packages/domain (TypeScript). -->
+        <directory>${project.basedir}/../../packages/domain/fixtures</directory>
+        <includes>
+          <include>category-template.json</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
@@ -130,7 +148,8 @@
                 <useJakartaEe>true</useJakartaEe>
                 <useTags>true</useTags>
                 <skipDefaultInterface>true</skipDefaultInterface>
-                <openApiNullable>false</openApiNullable>
+                <!-- PATCH must tell "absent" from "null" (CategoryUpdate.glAccount). -->
+                <openApiNullable>true</openApiNullable>
                 <useBeanValidation>false</useBeanValidation>
                 <documentationProvider>none</documentationProvider>
                 <annotationLibrary>none</annotationLibrary>

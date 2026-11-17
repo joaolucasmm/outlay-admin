@@ -18,6 +18,7 @@ public final class Api {
 
   public static final String OPERATOR = "per_operator";
   public static final String BLUEFIN_ADMIN = "per_admin_tnt_bluefin";
+  public static final String HARBOR_ADMIN = "per_admin_tnt_harbor";
 
   /** A response: status and parsed JSON body (a missing node when empty). */
   public record Response(int status, JsonNode body) {}
@@ -43,6 +44,14 @@ public final class Api {
 
   public Request post(String template, Object... vars) {
     return new Request(HttpMethod.POST, template, vars);
+  }
+
+  public Request put(String template, Object... vars) {
+    return new Request(HttpMethod.PUT, template, vars);
+  }
+
+  public Request patch(String template, Object... vars) {
+    return new Request(HttpMethod.PATCH, template, vars);
   }
 
   /** One call, built fluently and sent by {@link #send()}. */

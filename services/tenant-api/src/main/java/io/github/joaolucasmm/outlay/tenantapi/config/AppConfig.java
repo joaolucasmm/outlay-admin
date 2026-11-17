@@ -2,15 +2,19 @@ package io.github.joaolucasmm.outlay.tenantapi.config;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.joaolucasmm.outlay.tenantapi.api.model.Problem;
+import io.github.joaolucasmm.outlay.tenantapi.domain.CategoryTemplate;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 
 @Configuration
 public class AppConfig {
@@ -22,6 +26,23 @@ public class AppConfig {
   /** Problem Details leave out an absent {@code detail} and an empty {@code errors}. */
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   abstract static class ProblemMixin {}
+
+  /** Generated DTOs use JsonNullable to tell an absent field from an explicit null. */
+  @Bean
+  JsonNullableModule jsonNullableModule() {
+    return new JsonNullableModule();
+  }
+
+  /**
+   * The standard program template: packages/domain/fixtures/category-template.json, which the
+   * Maven build copies onto the classpath (the TypeScript domain reads the same file).
+   */
+  @Bean
+  CategoryTemplate categoryTemplate(ObjectMapper json) throws IOException {
+    try (var in = new ClassPathResource("category-template.json").getInputStream()) {
+      return json.readValue(in, CategoryTemplate.class);
+    }
+  }
 
   @Bean
   Clock clock() {

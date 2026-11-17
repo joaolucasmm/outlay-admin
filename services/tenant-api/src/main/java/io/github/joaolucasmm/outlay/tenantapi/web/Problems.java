@@ -1,6 +1,6 @@
 package io.github.joaolucasmm.outlay.tenantapi.web;
 
-import io.github.joaolucasmm.outlay.tenantapi.domain.NewTenant.FieldError;
+import io.github.joaolucasmm.outlay.tenantapi.domain.FieldError;
 import java.util.List;
 import org.springframework.lang.Nullable;
 

@@ -37,7 +37,8 @@ public class DemoPersonaFilter extends OncePerRequestFilter {
           .ifPresent(
               persona -> {
                 Caller caller =
-                    new Caller(persona.getId(), persona.getRole(), persona.getTenantId());
+                    new Caller(
+                        persona.getId(), persona.getRole(), persona.getTenantId().orElse(null));
                 var authorities =
                     Permission.grantedTo(caller.role()).stream()
                         .map(p -> new SimpleGrantedAuthority(p.value()))
