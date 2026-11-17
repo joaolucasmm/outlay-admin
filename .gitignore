@@ -22,3 +22,6 @@ apps/web/playwright-report/
 
 # Raw frames for the README GIF (docs/media/demo.gif is committed)
 docs/media/frames/
+
+# Java (services/tenant-api)
+services/tenant-api/target/

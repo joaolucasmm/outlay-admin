@@ -1,0 +1,214 @@
+{
+  "$comment": "The tenant lifecycle rules as data. packages/domain (Vitest) and services/tenant-api (JUnit) both run every case, so the TypeScript and Java implementations cannot drift apart. The tenant under test is always named 'Bluefin Logistics'.",
+  "tenantName": "Bluefin Logistics",
+  "permissions": {
+    "support_operator": ["tenants:list", "tenants:create", "tenants:transition", "audit:read"],
+    "program_admin": ["tenant:configure", "audit:read"]
+  },
+  "availableActions": {
+    "provisioning": ["activate"],
+    "active": ["suspend"],
+    "suspended": ["reactivate", "deprovision"],
+    "deprovisioned": []
+  },
+  "transitions": [
+    {
+      "name": "activates a provisioning tenant",
+      "from": "provisioning",
+      "role": "support_operator",
+      "command": { "action": "activate" },
+      "expect": {
+        "ok": true,
+        "to": "active",
+        "event": "tenant.activated",
+        "after": { "status": "active" }
+      }
+    },
+    {
+      "name": "suspends an active tenant, keeping the trimmed reason",
+      "from": "active",
+      "role": "support_operator",
+      "command": { "action": "suspend", "reason": "  Unpaid invoices " },
+      "expect": {
+        "ok": true,
+        "to": "suspended",
+        "event": "tenant.suspended",
+        "after": { "status": "suspended", "reason": "Unpaid invoices" }
+      }
+    },
+    {
+      "name": "reactivates a suspended tenant",
+      "from": "suspended",
+      "role": "support_operator",
+      "command": { "action": "reactivate" },
+      "expect": {
+        "ok": true,
+        "to": "active",
+        "event": "tenant.reactivated",
+        "after": { "status": "active" }
+      }
+    },
+    {
+      "name": "deprovisions a suspended tenant with the exact name",
+      "from": "suspended",
+      "role": "support_operator",
+      "command": { "action": "deprovision", "confirmationName": "Bluefin Logistics" },
+      "expect": {
+        "ok": true,
+        "to": "deprovisioned",
+        "event": "tenant.deprovisioned",
+        "after": { "status": "deprovisioned" }
+      }
+    },
+    {
+      "name": "accepts the confirmation name with surrounding spaces",
+      "from": "suspended",
+      "role": "support_operator",
+      "command": { "action": "deprovision", "confirmationName": " Bluefin Logistics " },
+      "expect": {
+        "ok": true,
+        "to": "deprovisioned",
+        "event": "tenant.deprovisioned",
+        "after": { "status": "deprovisioned" }
+      }
+    },
+    {
+      "name": "forbids a Program Admin before checking anything else",
+      "from": "deprovisioned",
+      "role": "program_admin",
+      "command": { "action": "activate" },
+      "expect": {
+        "ok": false,
+        "code": "forbidden",
+        "message": "Only a Support Operator may run lifecycle actions."
+      }
+    },
+    {
+      "name": "rejects suspending a provisioning tenant",
+      "from": "provisioning",
+      "role": "support_operator",
+      "command": { "action": "suspend", "reason": "r" },
+      "expect": {
+        "ok": false,
+        "code": "invalid_transition",
+        "message": "Cannot suspend a tenant that is provisioning."
+      }
+    },
+    {
+      "name": "rejects activating an active tenant",
+      "from": "active",
+      "role": "support_operator",
+      "command": { "action": "activate" },
+      "expect": {
+        "ok": false,
+        "code": "invalid_transition",
+        "message": "Cannot activate a tenant that is active."
+      }
+    },
+    {
+      "name": "rejects deprovisioning an active tenant, even with the right name",
+      "from": "active",
+      "role": "support_operator",
+      "command": { "action": "deprovision", "confirmationName": "Bluefin Logistics" },
+      "expect": {
+        "ok": false,
+        "code": "invalid_transition",
+        "message": "Cannot deprovision a tenant that is active."
+      }
+    },
+    {
+      "name": "rejects suspending a suspended tenant",
+      "from": "suspended",
+      "role": "support_operator",
+      "command": { "action": "suspend", "reason": "r" },
+      "expect": {
+        "ok": false,
+        "code": "invalid_transition",
+        "message": "Cannot suspend a tenant that is suspended."
+      }
+    },
+    {
+      "name": "rejects reactivating a deprovisioned tenant",
+      "from": "deprovisioned",
+      "role": "support_operator",
+      "command": { "action": "reactivate" },
+      "expect": {
+        "ok": false,
+        "code": "invalid_transition",
+        "message": "Cannot reactivate a tenant that is deprovisioned."
+      }
+    },
+    {
+      "name": "requires a suspend reason (missing)",
+      "from": "active",
+      "role": "support_operator",
+      "command": { "action": "suspend" },
+      "expect": {
+        "ok": false,
+        "code": "reason_required",
+        "field": "reason",
+        "message": "A reason is required to suspend a tenant."
+      }
+    },
+    {
+      "name": "requires a suspend reason (empty)",
+      "from": "active",
+      "role": "support_operator",
+      "command": { "action": "suspend", "reason": "" },
+      "expect": {
+        "ok": false,
+        "code": "reason_required",
+        "field": "reason",
+        "message": "A reason is required to suspend a tenant."
+      }
+    },
+    {
+      "name": "requires a suspend reason (blank)",
+      "from": "active",
+      "role": "support_operator",
+      "command": { "action": "suspend", "reason": "   " },
+      "expect": {
+        "ok": false,
+        "code": "reason_required",
+        "field": "reason",
+        "message": "A reason is required to suspend a tenant."
+      }
+    },
+    {
+      "name": "requires the confirmation name (missing)",
+      "from": "suspended",
+      "role": "support_operator",
+      "command": { "action": "deprovision" },
+      "expect": {
+        "ok": false,
+        "code": "name_mismatch",
+        "field": "confirmationName",
+        "message": "Type the exact tenant name to confirm deprovisioning."
+      }
+    },
+    {
+      "name": "requires the exact tenant name (different case)",
+      "from": "suspended",
+      "role": "support_operator",
+      "command": { "action": "deprovision", "confirmationName": "bluefin logistics" },
+      "expect": {
+        "ok": false,
+        "code": "name_mismatch",
+        "field": "confirmationName",
+        "message": "Type the exact tenant name to confirm deprovisioning."
+      }
+    },
+    {
+      "name": "requires the exact tenant name (partial)",
+      "from": "suspended",
+      "role": "support_operator",
+      "command": { "action": "deprovision", "confirmationName": "Bluefin" },
+      "expect": {
+        "ok": false,
+        "code": "name_mismatch",
+        "field": "confirmationName",
+        "message": "Type the exact tenant name to confirm deprovisioning."
+      }
+    }
+  ]
+}

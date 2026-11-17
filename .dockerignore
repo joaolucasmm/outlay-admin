@@ -1,0 +1,12 @@
+**/node_modules
+**/target
+**/.venv
+**/dist
+**/coverage
+.git
+.env
+.env.*
+apps/web/test-results
+apps/web/playwright-report
+services/ai/evals
+docs/media

@@ -59,10 +59,16 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 ## Phase 2 (after submitting)
 
 ## M8 — Spring Boot tenant API (~12–18h)
-- [ ] Spring Boot 3 / Java 21, Flyway migrations, MySQL via Docker Compose
-- [ ] Tenants + transitions + audit, mirroring the domain tests in JUnit
-- [ ] Testcontainers integration tests; contract test against `openapi.yaml`
-- [ ] `./mvnw verify` in CI; web `VITE_API_MODE=live` runs against it
+- [x] Spring Boot 3 / Java 21, Flyway migrations, MySQL via Docker Compose
+- [x] Tenants + transitions + audit, mirroring the domain tests in JUnit
+- [x] Testcontainers integration tests; contract test against `openapi.yaml`
+- [x] `./mvnw verify` in CI; web `VITE_API_MODE=live` runs against it
+
+## M8b — Tenant program in the Java API (~8–12h)
+- [ ] Categories (list, create, update, active toggle) and the category templates
+- [ ] Policy rules (get, replace) with the same validation as `packages/domain`
+- [ ] Employees (list with filters, all-or-nothing CSV import)
+- [ ] Program write access (`programWriteAccess`) as a shared fixture, like the lifecycle; remove the live-mode notices
 
 ## M9 — Ops (optional, ~6–8h)
 - [ ] Kubernetes manifests (kind), readiness/liveness probes, Actuator metrics
