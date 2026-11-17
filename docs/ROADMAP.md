@@ -72,4 +72,5 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] Demo seed generated from the mock fixtures; the Playwright main flow runs against the Java API in CI
 
 ## M9 — Ops (optional, ~6–8h)
+- [x] Live demo on one VM: `compose.prod.yaml` with Caddy (HTTPS, same-origin web app), hourly reset ([DEPLOY.md](DEPLOY.md))
 - [ ] Kubernetes manifests (kind), readiness/liveness probes, Actuator metrics

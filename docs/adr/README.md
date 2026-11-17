@@ -10,3 +10,5 @@ Short records of decisions that are hard to reverse, surprising without context,
 | [0004](0004-client-orchestrated-resumable-provisioning.md) | Provisioning is a sequence of real, resumable client calls |
 | [0005](0005-receipt-extraction-degrades-instead-of-failing.md) | Receipt extraction degrades to low confidence instead of failing |
 | [0006](0006-demo-persona-header-is-a-spring-security-filter.md) | The demo persona header is a Spring Security filter; real auth replaces only that filter |
+| [0007](0007-the-java-demo-seed-is-generated-from-the-mock.md) | The Java demo seed is generated from the mock fixtures |
+| [0008](0008-the-live-demo-is-one-small-vm-behind-caddy.md) | The live demo is one small VM behind Caddy, with the web app on the same origin |

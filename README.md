@@ -55,6 +55,7 @@ flowchart LR
 | Receipt extraction degrades instead of failing        | [ADR 0005](docs/adr/0005-receipt-extraction-degrades-instead-of-failing.md)  |
 | The demo persona header is a Spring Security filter   | [ADR 0006](docs/adr/0006-demo-persona-header-is-a-spring-security-filter.md) |
 | The Java demo seed is generated from the mock         | [ADR 0007](docs/adr/0007-the-java-demo-seed-is-generated-from-the-mock.md)   |
+| The live demo is one small VM behind Caddy            | [ADR 0008](docs/adr/0008-the-live-demo-is-one-small-vm-behind-caddy.md)      |
 
 Full design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · domain glossary: [`CONTEXT.md`](CONTEXT.md) · plan and status: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -109,6 +110,8 @@ cd services/tenant-api && ./mvnw verify       # unit + Testcontainers integratio
 pnpm seed:export                              # regenerate the Java demo seed after changing mock fixtures
 ```
 
+To put the live API online on one small VM (Caddy, HTTPS, hourly demo reset), see [docs/DEPLOY.md](docs/DEPLOY.md).
+
 Environment variables are documented in [`.env.example`](.env.example). The demo GIF is regenerated with `CAPTURE_DEMO=1 pnpm --filter web exec playwright test demo`, then `uv run python ../../scripts/make_demo_gif.py` from `services/ai`.
 
 ## Repository layout
@@ -120,6 +123,7 @@ packages/domain/     pure TypeScript: lifecycle, permissions, policy engine, val
 services/ai/         FastAPI receipt extraction + evals/
 services/tenant-api/ Spring Boot: tenants, lifecycle, audit, program (MySQL, Flyway)
 scripts/             demo GIF assembly, Java demo seed export
+deploy/              live demo: Caddyfile and the web image (with compose.prod.yaml)
 docs/                architecture, roadmap, ADRs, media
 ```
 
