@@ -1,6 +1,8 @@
 package io.github.joaolucasmm.outlay.tenantapi.web;
 
-import io.github.joaolucasmm.outlay.tenantapi.domain.NewTenant.FieldError;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import io.github.joaolucasmm.outlay.tenantapi.domain.FieldError;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Set;
@@ -46,20 +48,48 @@ public class ProblemHandler {
               "Dates must be ISO 8601 date-times.",
               List.of(new FieldError(name, "Not a valid date-time."))));
     }
-    if (name.equals("status")) {
+    if (e.getRequiredType() != null && e.getRequiredType().isEnum()) {
       return ProblemWriter.entity(
-          ApiProblem.badRequest("Unknown status \"" + e.getValue() + "\"."));
+          ApiProblem.badRequest("Unknown " + name + " \"" + e.getValue() + "\"."));
     }
     return ProblemWriter.entity(ApiProblem.badRequest("Invalid value for \"" + name + "\"."));
   }
 
-  /** A body that is not JSON or does not fit the schema (e.g. an unknown lifecycle action). */
+  /**
+   * A body that is not JSON or does not fit the schema. When Jackson knows where (an unknown
+   * field, a value outside an enum), the error points there, e.g. {@code employees[3].role}.
+   */
   @ExceptionHandler(HttpMessageNotReadableException.class)
-  ResponseEntity<Object> unreadable(HttpServletRequest request) {
+  ResponseEntity<Object> unreadable(HttpMessageNotReadableException e, HttpServletRequest request) {
+    if (request.getRequestURI().endsWith("/transitions")) {
+      return ProblemWriter.entity(Problems.invalidLifecycleCommand());
+    }
+    if (e.getCause() instanceof JsonMappingException mapping && !mapping.getPath().isEmpty()) {
+      String message =
+          mapping instanceof UnrecognizedPropertyException
+              ? "This field is not part of the contract."
+              : "Not a valid value for this field.";
+      return ProblemWriter.entity(
+          ApiProblem.invalidInput(List.of(new FieldError(path(mapping), message))));
+    }
     return ProblemWriter.entity(
-        request.getRequestURI().endsWith("/transitions")
-            ? Problems.invalidLifecycleCommand()
-            : Problems.invalidTenantCreate());
+        request.getRequestURI().endsWith("/tenants")
+            ? Problems.invalidTenantCreate()
+            : ApiProblem.invalidInput(List.of(new FieldError("body", "Body is not valid JSON."))));
+  }
+
+  /** Jackson's location as the contract's field notation: {@code rules[2].approvalLevels}. */
+  private static String path(JsonMappingException e) {
+    StringBuilder out = new StringBuilder();
+    for (JsonMappingException.Reference ref : e.getPath()) {
+      if (ref.getFieldName() != null) {
+        if (!out.isEmpty()) out.append('.');
+        out.append(ref.getFieldName());
+      } else {
+        out.append('[').append(ref.getIndex()).append(']');
+      }
+    }
+    return out.toString();
   }
 
   @ExceptionHandler(OptimisticLockingFailureException.class)
@@ -69,11 +99,31 @@ public class ProblemHandler {
             409, "Conflict", "The tenant changed while you were acting on it. Reload it and retry."));
   }
 
-  /** The unique name index caught a duplicate that the service's own check raced past. */
+  /**
+   * A unique index caught a duplicate that a service check raced past. Program writes lock the
+   * tenant row, so this is rare; the constraint name says which duplicate it was.
+   */
   @ExceptionHandler(DataIntegrityViolationException.class)
   ResponseEntity<Object> integrity(DataIntegrityViolationException e) {
     LOG.warn("Integrity violation", e);
-    return ProblemWriter.entity(Problems.duplicateName(null));
+    String detail = String.valueOf(e.getMostSpecificCause().getMessage());
+    if (detail.contains("uq_tenants_name_key")) {
+      return ProblemWriter.entity(Problems.duplicateName(null));
+    }
+    if (detail.contains("uq_categories_tenant_code")) {
+      return ProblemWriter.entity(
+          conflict("Duplicate code", "code", "This code is already used."));
+    }
+    if (detail.contains("uq_employees_tenant_email")) {
+      return ProblemWriter.entity(
+          conflict("Duplicate email", "email", "An employee with this email already exists."));
+    }
+    return ProblemWriter.entity(
+        new ApiProblem(409, "Conflict", "The change conflicts with existing data."));
+  }
+
+  private static ApiProblem conflict(String title, String field, String message) {
+    return new ApiProblem(409, title, message, List.of(new FieldError(field, message)));
   }
 
   @ExceptionHandler(NoResourceFoundException.class)

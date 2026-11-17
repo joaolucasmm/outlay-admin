@@ -15,6 +15,12 @@ public final class Cursor {
   /** Tenants are ordered by (name, id). */
   public record TenantKey(String name, String id) {}
 
+  /** Categories are ordered by (code, id). */
+  public record CodeKey(String code, String id) {}
+
+  /** Employees are ordered by (name, id). */
+  public record NameKey(String name, String id) {}
+
   /** Audit events are ordered newest first by (at, id). */
   public record AuditKey(long atMillis, String id) {}
 
@@ -60,5 +66,10 @@ public final class Cursor {
       return DEFAULT_LIMIT;
     }
     return Math.min(Math.max(limit, 1), MAX_LIMIT);
+  }
+
+  /** Escapes a user search for SQL LIKE, with backslash as the escape character. */
+  public static String escapeLike(String value) {
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
   }
 }

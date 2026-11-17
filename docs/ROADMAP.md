@@ -65,10 +65,11 @@ Each milestone ends green in CI and is demoable. Tick items as they land. Estima
 - [x] `./mvnw verify` in CI; web `VITE_API_MODE=live` runs against it
 
 ## M8b — Tenant program in the Java API (~8–12h)
-- [ ] Categories (list, create, update, active toggle) and the category templates
-- [ ] Policy rules (get, replace) with the same validation as `packages/domain`
-- [ ] Employees (list with filters, all-or-nothing CSV import)
-- [ ] Program write access (`programWriteAccess`) as a shared fixture, like the lifecycle; remove the live-mode notices
+- [x] Categories (list, create, update, active toggle) and the category templates
+- [x] Policy rules (get, replace) with the same validation as `packages/domain`
+- [x] Employees (list with filters, all-or-nothing CSV import)
+- [x] Program write access (`programWriteAccess`) as a shared fixture, like the lifecycle; remove the live-mode notices
+- [x] Demo seed generated from the mock fixtures; the Playwright main flow runs against the Java API in CI
 
 ## M9 — Ops (optional, ~6–8h)
 - [ ] Kubernetes manifests (kind), readiness/liveness probes, Actuator metrics

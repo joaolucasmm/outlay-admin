@@ -11,12 +11,14 @@
     "build": "pnpm -r build",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r typecheck && tsc -p scripts",
     "test": "pnpm -r test",
-    "e2e": "pnpm --filter web e2e"
+    "e2e": "pnpm --filter web e2e",
+    "seed:export": "tsx scripts/export-demo-seed.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9",
+    "@types/node": "22",
     "@vitest/coverage-v8": "^3.2",
     "eslint": "^9",
     "eslint-config-prettier": "^10",
@@ -24,6 +26,7 @@
     "eslint-plugin-react-hooks": "^5",
     "globals": "^16",
     "prettier": "^3",
+    "tsx": "^4.23.15",
     "typescript": "~5.8",
     "typescript-eslint": "^8",
     "vitest": "^3.2"

@@ -1,9 +1,17 @@
 package io.github.joaolucasmm.outlay.tenantapi.web;
 
 import io.github.joaolucasmm.outlay.tenantapi.api.model.Actor;
+import io.github.joaolucasmm.outlay.tenantapi.api.model.ApprovalLevels;
 import io.github.joaolucasmm.outlay.tenantapi.api.model.AuditEvent;
+import io.github.joaolucasmm.outlay.tenantapi.api.model.Employee;
+import io.github.joaolucasmm.outlay.tenantapi.api.model.EmployeeRole;
+import io.github.joaolucasmm.outlay.tenantapi.api.model.ExpenseCategory;
+import io.github.joaolucasmm.outlay.tenantapi.api.model.PolicyRule;
 import io.github.joaolucasmm.outlay.tenantapi.api.model.Tenant;
 import io.github.joaolucasmm.outlay.tenantapi.persistence.AuditEventEntity;
+import io.github.joaolucasmm.outlay.tenantapi.persistence.CategoryEntity;
+import io.github.joaolucasmm.outlay.tenantapi.persistence.EmployeeEntity;
+import io.github.joaolucasmm.outlay.tenantapi.persistence.PolicyRuleEntity;
 import io.github.joaolucasmm.outlay.tenantapi.persistence.TenantEntity;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -40,5 +48,32 @@ public final class Mappers {
             utc(e.getAt()))
         .before(e.getBeforeState())
         .after(e.getAfterState());
+  }
+
+  public static ExpenseCategory category(CategoryEntity c) {
+    return new ExpenseCategory(
+        c.getId(), c.getTenantId(), c.getCode(), c.getName(), c.getGlAccount(), c.isActive());
+  }
+
+  public static PolicyRule policyRule(PolicyRuleEntity r) {
+    var fields = r.fields();
+    return new PolicyRule(
+        r.getCategoryId(),
+        EmployeeRole.fromValue(r.getRole()),
+        Math.toIntExact(fields.limitMinor()),
+        Math.toIntExact(fields.receiptRequiredAboveMinor()),
+        ApprovalLevels.fromValue(fields.approvalLevels()),
+        r.getId(),
+        r.getTenantId());
+  }
+
+  public static Employee employee(EmployeeEntity e) {
+    return new Employee(
+        e.getName(),
+        e.getEmail(),
+        EmployeeRole.fromValue(e.getRole()),
+        e.getCostCenter(),
+        e.getId(),
+        e.getTenantId());
   }
 }

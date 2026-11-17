@@ -22,9 +22,9 @@ class NewTenantTest {
         .isEqualTo(
             Result.err(
                 List.of(
-                    new NewTenant.FieldError("name", "Enter a company name of 2 to 80 characters."),
-                    new NewTenant.FieldError("country", "Choose a supported country."),
-                    new NewTenant.FieldError("currency", "Choose a supported currency."))));
+                    new FieldError("name", "Enter a company name of 2 to 80 characters."),
+                    new FieldError("country", "Choose a supported country."),
+                    new FieldError("currency", "Choose a supported currency."))));
   }
 
   @Test

@@ -45,3 +45,10 @@ export {
   type InvalidImportRow,
   type ValidImportRow,
 } from './employee';
+export {
+  CATEGORY_TEMPLATE,
+  programFromTemplate,
+  type TemplateCategory,
+  type TemplateProgram,
+  type TemplateRule,
+} from './template';

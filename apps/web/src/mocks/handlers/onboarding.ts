@@ -3,6 +3,7 @@ import {
   canOnboard,
   EMPLOYEE_ROLES,
   normalizeEmail,
+  programFromTemplate,
   sameTenantName,
   validateEmployeeImport,
   validateNewTenant,
@@ -18,7 +19,6 @@ import type {
 } from 'contracts';
 import { delay, http, HttpResponse, type DefaultBodyType } from 'msw';
 import { db } from '../db';
-import { programFor } from '../fixtures/program';
 import {
   callerFrom,
   fieldErrors,
@@ -128,7 +128,7 @@ export const onboardingHandlers = [
       const existing = new Set(db.categories(tenant.id).map((c) => c.code));
       const { categories, rules } =
         body.templateId === 'standard'
-          ? programFor(tenant, existing)
+          ? programFromTemplate(tenant, existing)
           : { categories: [], rules: [] };
       db.addProgram(categories, rules);
       const result: TemplateResult = {
