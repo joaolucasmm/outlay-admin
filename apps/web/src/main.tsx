@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router';
-import { apiMode } from './app/config';
+import { aiMode, apiMode } from './app/config';
 import { Providers } from './app/providers';
 import { router } from './app/router';
 import { makeStore } from './app/store';
@@ -9,10 +9,11 @@ import { loadOnboardingDraft, saveOnboardingDraft } from './features/onboarding/
 import { loadSession, saveSession } from './features/session/persistence';
 import './index.css';
 
+/** MSW serves whatever is mocked: the whole API, or only the AI next to a live tenant API. */
 async function enableMocking() {
-  if (apiMode !== 'mock') return;
+  if (apiMode !== 'mock' && aiMode !== 'mock') return;
   const { startMockWorker } = await import('./mocks/browser');
-  await startMockWorker();
+  await startMockWorker(apiMode === 'mock' ? 'all' : 'ai');
 }
 
 const rootElement = document.getElementById('root');

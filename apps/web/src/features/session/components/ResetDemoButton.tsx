@@ -1,14 +1,11 @@
 import { api } from '../../../app/api';
-import { apiMode } from '../../../app/config';
 import { useAppDispatch } from '../../../app/store';
 import { useResetDemoMutation } from '../api';
 
-/** Mock mode only: restores the seeded demo data. */
+/** Restores the seeded demo data: the mock's, or the Java API's in its `demo` profile. */
 export function ResetDemoButton() {
   const [resetDemo, { isLoading }] = useResetDemoMutation();
   const dispatch = useAppDispatch();
-
-  if (apiMode !== 'mock') return null;
 
   return (
     <button
