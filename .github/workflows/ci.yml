@@ -138,3 +138,25 @@ jobs:
         if: failure()
         working-directory: .
         run: docker compose logs
+      # The live-demo stack (docs/DEPLOY.md): Caddy serves the web app and proxies /api.
+      - name: Production stack smoke test
+        working-directory: .
+        env:
+          SITE_ADDRESS: ':80'
+          DB_PASSWORD: ci-only
+          DB_ROOT_PASSWORD: ci-only-root
+        run: |
+          docker compose down
+          docker compose -f compose.prod.yaml up -d --build
+          for i in $(seq 1 60); do curl -fsS http://localhost/api/v1/health && break; sleep 2; done
+          curl -fsS -H 'X-Demo-Persona: per_operator' 'http://localhost/api/v1/tenants?limit=3' | grep -q 'Bluefin Logistics'
+          curl -fsS http://localhost/tenants | grep -q '<div id="root">'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost/api/v1/demo/reset)" = 204
+      - name: Production stack logs on failure
+        if: failure()
+        working-directory: .
+        env:
+          SITE_ADDRESS: ':80'
+          DB_PASSWORD: ci-only
+          DB_ROOT_PASSWORD: ci-only-root
+        run: docker compose -f compose.prod.yaml logs

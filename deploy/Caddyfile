@@ -1,0 +1,29 @@
+# SITE_ADDRESS is the demo's domain (Caddy gets and renews its HTTPS certificate),
+# or "localhost" / ":80" to try the stack on your machine.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy tenant-api:8080
+	}
+
+	# The single-page app: real files when they exist, index.html for every route.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

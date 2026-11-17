@@ -1,0 +1,84 @@
+# The public live demo on one small VM: Caddy (HTTPS, web app, /api proxy) + tenant API + MySQL.
+# Only Caddy is reachable from outside. See docs/DEPLOY.md.
+#   docker compose -f compose.prod.yaml up -d --build
+# Required in .env next to this file: SITE_ADDRESS, DB_PASSWORD, DB_ROOT_PASSWORD.
+name: outlay-demo
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: outlay
+      MYSQL_USER: outlay
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
+    # Small buffers: the demo data is a few hundred rows.
+    command: ['--innodb-buffer-pool-size=64M', '--performance-schema=OFF']
+    volumes:
+      - mysql-data:/var/lib/mysql
+    mem_limit: 512m
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" --silent']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  tenant-api:
+    build:
+      context: .
+      dockerfile: services/tenant-api/Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      DB_URL: jdbc:mysql://mysql:3306/outlay?connectionTimeZone=UTC&forceConnectionTimeMapping=true
+      DB_USER: outlay
+      DB_PASSWORD: ${DB_PASSWORD}
+      # The web app is served from the same origin; no cross-origin caller is expected.
+      CORS_ALLOWED_ORIGINS: https://${SITE_ADDRESS}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC
+    mem_limit: 640m
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    mem_limit: 128m
+    depends_on:
+      - tenant-api
+
+  # Anyone can edit the demo (it has personas, not logins), so put the seed back every hour.
+  reset:
+    image: curlimages/curl:8.11.1
+    restart: unless-stopped
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        while true; do
+          sleep "$${RESET_EVERY_SECONDS:-3600}"
+          curl -fsS -X POST http://tenant-api:8080/api/v1/demo/reset && echo "demo reset at $$(date -u)"
+        done
+    environment:
+      RESET_EVERY_SECONDS: ${RESET_EVERY_SECONDS:-3600}
+    mem_limit: 32m
+    depends_on:
+      - tenant-api
+
+volumes:
+  mysql-data:
+  caddy-data:
+  caddy-config:
