@@ -1,4 +1,15 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Page } from '@playwright/test';
+
+/** `E2E_API=live`: the app talks to the Java tenant API instead of the MSW mock. */
+export const LIVE = process.env.E2E_API === 'live';
+const LIVE_API_URL = 'http://localhost:8080/api/v1';
+
+/** Live mode shares one database: put the demo data back before each test. */
+export async function resetLiveApi(request: APIRequestContext) {
+  if (!LIVE) return;
+  const response = await request.post(`${LIVE_API_URL}/demo/reset`);
+  expect(response.status()).toBe(204);
+}
 
 export const OPERATOR = {
   id: 'per_operator',
@@ -26,10 +37,10 @@ export async function signInAs(page: Page, persona: Persona) {
   );
 }
 
-/** Opens a route of the app (relative to the /outlay-admin/ base) once the mock API is up. */
+/** Opens a route of the app (relative to the /outlay-admin/ base) once the API is up. */
 export async function open(page: Page, path: string) {
   await page.goto(path.replace(/^\//, ''));
-  await expect(page.getByText('Mock API: ok')).toBeVisible();
+  await expect(page.getByText(LIVE ? 'Live API: ok' : 'Mock API: ok')).toBeVisible();
 }
 
 export const nav = (page: Page) => page.getByRole('navigation', { name: 'Main' });

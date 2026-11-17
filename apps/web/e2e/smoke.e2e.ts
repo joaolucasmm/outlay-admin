@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { nav, open } from './support';
+import { nav, open, resetLiveApi } from './support';
 
 const TEAM_CSV = [
   'name;email;role;costCenter',
@@ -7,8 +7,13 @@ const TEAM_CSV = [
   'Bo Reis;bo@lumio.example;employee;SALES',
 ].join('\n');
 
+test.beforeEach(async ({ request }) => {
+  await resetLiveApi(request);
+});
+
 /**
- * The main flow, end to end on the production build: a Support Operator onboards a
+ * The main flow, end to end on the production build (against the mock, or with
+ * E2E_API=live against the Java tenant API): a Support Operator onboards a
  * tenant, its Program Admin tightens a policy, and a receipt is checked against it.
  */
 test('onboard a tenant, edit its policy and check a receipt', async ({ page }) => {
