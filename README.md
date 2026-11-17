@@ -27,28 +27,33 @@ flowchart LR
   CONTRACT["packages/contracts<br/>openapi.yaml → generated TS types"]
   DOMAIN["packages/domain<br/>lifecycle · permissions · policy engine<br/>(pure TS, 100% branch coverage)"]
   AI["services/ai<br/>FastAPI · Claude structured output"]
+  JAVA["services/tenant-api<br/>Spring Boot 3 · Java 21 · MySQL"]
   EVALS["services/ai/evals<br/>dataset · grader · runner · reports"]
 
   WEB -- "REST /api/v1" --> MSW
+  WEB -. "REST /api/v1 (live mode)" .-> JAVA
   WEB -- "POST /v1/receipts/extract (live mode)" --> AI
   WEB --> DOMAIN
   MSW --> DOMAIN
   WEB --> CONTRACT
   MSW --> CONTRACT
   EVALS --> AI
+  JAVA --> CONTRACT
 ```
 
-- **Contract first.** `openapi.yaml` is the single source of truth. The web app only uses generated types, and the mock backend implements the same contract a future Spring Boot service will (M8). CI fails if the generated types are stale.
+- **Contract first.** `openapi.yaml` is the single source of truth. The web app only uses generated types; the Spring Boot service implements interfaces generated from the same file, and its integration tests validate every response against it. CI fails if the generated TypeScript types are stale.
+- **Two backends, one behavior.** The browser demo runs on an MSW mock; `services/tenant-api` (Spring Boot, MySQL) serves tenants, lifecycle and audit for real. Both run the same lifecycle cases from one JSON fixture, use the same seed ids and answer with the same Problem Details, and a parity test repeats the mock's scenarios against Java.
 - **The LLM extracts, the policy engine decides.** The model turns a receipt into fields; a person reviews them; `checkExpense` (pure TypeScript) decides and explains each finding. Model confidence never reaches the engine ([ADR 0003](docs/adr/0003-policy-engine-judges-a-reviewed-expense.md)).
 - **State:** server data lives only in RTK Query (tag invalidation, infinite queries). Redux slices hold the session and the persisted onboarding draft.
 
-| Decision                                              | Record                                                                      |
-| ----------------------------------------------------- | --------------------------------------------------------------------------- |
-| Domain types come from the contract                   | [ADR 0001](docs/adr/0001-domain-types-come-from-the-contract.md)            |
-| Demo personas; tenant scoping enforced by the backend | [ADR 0002](docs/adr/0002-demo-personas-instead-of-a-role-switcher.md)       |
-| The policy engine judges a reviewed Expense           | [ADR 0003](docs/adr/0003-policy-engine-judges-a-reviewed-expense.md)        |
-| Provisioning is real, resumable client calls          | [ADR 0004](docs/adr/0004-client-orchestrated-resumable-provisioning.md)     |
-| Receipt extraction degrades instead of failing        | [ADR 0005](docs/adr/0005-receipt-extraction-degrades-instead-of-failing.md) |
+| Decision                                              | Record                                                                       |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Domain types come from the contract                   | [ADR 0001](docs/adr/0001-domain-types-come-from-the-contract.md)             |
+| Demo personas; tenant scoping enforced by the backend | [ADR 0002](docs/adr/0002-demo-personas-instead-of-a-role-switcher.md)        |
+| The policy engine judges a reviewed Expense           | [ADR 0003](docs/adr/0003-policy-engine-judges-a-reviewed-expense.md)         |
+| Provisioning is real, resumable client calls          | [ADR 0004](docs/adr/0004-client-orchestrated-resumable-provisioning.md)      |
+| Receipt extraction degrades instead of failing        | [ADR 0005](docs/adr/0005-receipt-extraction-degrades-instead-of-failing.md)  |
+| The demo persona header is a Spring Security filter   | [ADR 0006](docs/adr/0006-demo-persona-header-is-a-spring-security-filter.md) |
 
 Full design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · domain glossary: [`CONTEXT.md`](CONTEXT.md) · plan and status: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -57,7 +62,7 @@ Full design: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · domain glossary: 
 - **Tests at every layer:** domain unit tests with 100% branch coverage; component and integration tests with Testing Library and MSW; Python tests with a fake LLM client (no test calls a real model); Playwright end-to-end tests against the production build under the Pages base path.
 - **Accessibility:** axe (WCAG 2.1 A/AA) scans every main screen and dialog in CI and fails on serious or critical issues; keyboard tests cover the skip link, focus trapping, focus return after closing a dialog, and completing actions without a mouse.
 - **Every list and page** has loading, empty and error states; a route error boundary replaces a crash with a way out.
-- **CI** runs lint, typecheck, unit tests, build, contract-type freshness, Python ruff/mypy/pytest, and the end-to-end suite. Every push to `main` deploys the demo.
+- **CI** runs lint, typecheck, unit tests, build, contract-type freshness, Python ruff/mypy/pytest, the end-to-end suite, and the Java service's `./mvnw verify` (JUnit, Testcontainers, contract validation) plus a Docker Compose smoke test. Every push to `main` deploys the demo.
 
 ## AI receipt extraction, measured
 
@@ -75,7 +80,7 @@ Read honestly: neither gain clears the 95% interval on 20 cases, and v2 has a re
 
 ## Run it locally
 
-Requirements: Node 22 with pnpm 9 (`corepack enable`), and for the AI service Python 3.12+ with [uv](https://docs.astral.sh/uv/).
+Requirements: Node 22 with pnpm 9 (`corepack enable`); for the AI service Python 3.12+ with [uv](https://docs.astral.sh/uv/); for the tenant API Docker (and JDK 21 to run its tests).
 
 ```bash
 pnpm i
@@ -92,21 +97,33 @@ uv sync && uv run ruff check . && uv run mypy && uv run pytest
 uv run fastapi dev app/main.py                # live extraction; needs ANTHROPIC_API_KEY in services/ai/.env
 ```
 
-Point the web app at it with `VITE_AI_MODE=live VITE_AI_URL=http://localhost:8000 pnpm dev`. Environment variables are documented in [`.env.example`](.env.example). The demo GIF is regenerated with `CAPTURE_DEMO=1 pnpm --filter web exec playwright test demo`, then `uv run python ../../scripts/make_demo_gif.py` from `services/ai`.
+Point the web app at it with `VITE_AI_MODE=live VITE_AI_URL=http://localhost:8000 pnpm dev`.
+
+Spring Boot tenant API (needs Docker; JDK 21 to run its tests outside Docker):
+
+````bash
+docker compose up --build                     # MySQL 8.4 + services/tenant-api on :8080 (demo profile)
+VITE_API_MODE=live VITE_API_URL=http://localhost:8080/api/v1 pnpm dev
+cd services/tenant-api && ./mvnw verify       # unit + Testcontainers integration tests
+``` Environment variables are documented in [`.env.example`](.env.example). The demo GIF is regenerated with `CAPTURE_DEMO=1 pnpm --filter web exec playwright test demo`, then `uv run python ../../scripts/make_demo_gif.py` from `services/ai`.
 
 ## Repository layout
 
-```
-apps/web/            React app (features/<feature>/, shared/ui, mocks/ for MSW, e2e/ for Playwright)
-packages/contracts/  openapi.yaml + generated types
-packages/domain/     pure TypeScript: lifecycle, permissions, policy engine, validation
-services/ai/         FastAPI receipt extraction + evals/
-docs/                architecture, roadmap, ADRs, media
+````
+
+apps/web/ React app (features/<feature>/, shared/ui, mocks/ for MSW, e2e/ for Playwright)
+packages/contracts/ openapi.yaml + generated types
+packages/domain/ pure TypeScript: lifecycle, permissions, policy engine, validation
+services/ai/ FastAPI receipt extraction + evals/
+services/tenant-api/ Spring Boot: tenants, lifecycle, audit (MySQL, Flyway)
+docs/ architecture, roadmap, ADRs, media
+
 ```
 
 ## What I'd do next
 
-- **Spring Boot tenant API (M8):** implement the same `openapi.yaml` with Spring Boot 3, Java 21 and MySQL, port the lifecycle tests to JUnit, add a contract test, and switch the web app with `VITE_API_MODE=live`.
+- **Tenant program in Java (M8b):** categories, policy rules, employees and templates in the Spring Boot service, so live mode covers every page.
 - **Evals:** add real anonymized receipt photos, grow the set so a few points of difference are measurable, write a v3 prompt from new dev cases that fixes v2's regression, and only then consider making `claude-haiku-5-5` the default.
 - **Product:** pick a specific employee (not just a role) when checking a receipt, export the filtered audit log as CSV, and support PDF receipts.
 - **Production concerns the demo skips:** real authentication and per-user audit actors, server-side rate limiting, and observability for the AI service.
+```

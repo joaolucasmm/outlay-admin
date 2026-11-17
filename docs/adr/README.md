@@ -9,3 +9,4 @@ Short records of decisions that are hard to reverse, surprising without context,
 | [0003](0003-policy-engine-judges-a-reviewed-expense.md) | The policy engine judges a reviewed Expense, never model output |
 | [0004](0004-client-orchestrated-resumable-provisioning.md) | Provisioning is a sequence of real, resumable client calls |
 | [0005](0005-receipt-extraction-degrades-instead-of-failing.md) | Receipt extraction degrades to low confidence instead of failing |
+| [0006](0006-demo-persona-header-is-a-spring-security-filter.md) | The demo persona header is a Spring Security filter; real auth replaces only that filter |

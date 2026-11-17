@@ -24,10 +24,10 @@ flowchart LR
 
   AI["services/ai<br/>Python · FastAPI<br/>receipt extraction (LLM)"]
   EVALS["services/ai/evals<br/>dataset + metrics + reports"]
-  TENANT["services/tenant-api<br/>Java · Spring Boot · MySQL<br/>(phase 2)"]
+  TENANT["services/tenant-api<br/>Java 21 · Spring Boot · MySQL"]
 
   WEB -- "REST (/api/v1)" --> MSW
-  WEB -. "REST, later" .-> TENANT
+  WEB -. "REST (/api/v1, live mode)" .-> TENANT
   WEB -- "POST /v1/receipts/extract<br/>(live mode)" --> AI
   WEB --> DOMAIN
   MSW --> DOMAIN
@@ -69,9 +69,9 @@ outlay-admin/
 │   └── domain/                 # pure TS: types, lifecycle, policy engine
 ├── services/
 │   ├── ai/                     # FastAPI receipt extraction + evals
-│   └── tenant-api/             # Spring Boot (phase 2, empty at start)
+│   └── tenant-api/             # Spring Boot: tenants, lifecycle, audit (M8)
 ├── .github/workflows/
-│   ├── ci.yml                  # lint, typecheck, test, build (TS + Python)
+│   ├── ci.yml                  # TS, e2e, Python, Java (+ Compose smoke)
 │   └── deploy.yml              # web → GitHub Pages (mock mode)
 ├── pnpm-workspace.yaml
 └── package.json
@@ -241,7 +241,7 @@ The draft lives in the `onboarding` slice and is persisted to localStorage, so a
 
 ### Modes
 
-`VITE_API_MODE=mock` (default; enables MSW in the browser) and `VITE_AI_MODE=mock|live`.
+`VITE_API_MODE=mock` (default; enables MSW in the browser) or `live` with `VITE_API_URL` (services/tenant-api, see §8), and `VITE_AI_MODE=mock|live`.
 - `mock`: MSW answers `/v1/receipts/extract` on the same origin with fixtures for the sample receipts in `public/sample-receipts/` (drawn by `services/ai/evals/generate_receipts.py`), with simulated latency. Any other file gets an honest low-confidence answer.
 - `live`: `POST {VITE_AI_URL}/v1/receipts/extract`. Same calling code; MSW lets the request through.
 
@@ -297,13 +297,30 @@ Grading is programmatic, per field: merchant fuzzy ≥ 0.9 after normalizing; da
 
 ---
 
-## 8. Tenant API (`services/tenant-api`) — phase 2
+## 8. Tenant API (`services/tenant-api`)
 
-Spring Boot 3 · Java 21 · Spring Web · Spring Data JPA · Flyway · MySQL 8 · springdoc-openapi · JUnit 5 + Testcontainers · Docker Compose.
+Spring Boot 3.5 · Java 21 · Spring Web · Spring Security · Spring Data JPA · Flyway · MySQL 8.4 · JUnit 5 + Testcontainers · Docker Compose (`compose.yaml` at the root).
 
-It implements the tenant, category, policy, audit and employee parts of `openapi.yaml`, with the lifecycle mirrored from `packages/domain` (same transition table and the same test cases ported to JUnit). A contract test validates responses against `openapi.yaml`. The web app switches to it with `VITE_API_MODE=live`.
+**Scope (M8):** health, demo personas and reset, tenants (list, get, create), lifecycle transitions, and the audit log with its filters. The tenant program (categories, policies, employees, templates) is M8b; in live mode the web app shows a "not implemented in the live API yet" notice on those pages.
 
-Optional after that: Kubernetes manifests (kind) with health probes and Actuator metrics.
+```
+api/ (generated)   openapi-generator, interfaceOnly: TenantsApi, AuditApi, ... + DTOs
+web/               controllers implement the generated interfaces; Problem Details; keyset cursors
+service/           TenantService, AuditLog, DemoSeed (transactions, scoping, audit writes)
+domain/            pure Java: Lifecycle, Permission, NewTenant, Result (no Spring)
+persistence/       JPA entities + Spring Data repositories
+security/          Caller, DemoPersonaFilter (demo profile), SecurityConfig
+```
+
+- **Contract first, in Java too.** The Maven build generates the API interfaces and DTOs from `packages/contracts/openapi.yaml`; controllers implement them, so a path, parameter or field that drifts from the contract fails to compile.
+- **One set of lifecycle rules, two implementations.** `packages/domain/fixtures/lifecycle-cases.json` holds the transition table, permissions and every success and error case (with exact messages). Vitest and a parameterized JUnit test both run it.
+- **Authentication is one filter** ([ADR 0006](adr/0006-demo-persona-header-is-a-spring-security-filter.md)): `X-Demo-Persona` is resolved by `DemoPersonaFilter` in the `demo` profile; `@PreAuthorize` and tenant scoping do not know where the caller came from.
+- **Persistence:** Flyway owns the schema (`db/migration`); Hibernate only validates it. The demo seed (`db/demo/R__demo_seed.sql`, `demo` profile only) has the same ids and values as the web mock, and `POST /demo/reset` re-runs it. Audit `before`/`after` are JSON columns. Tenant names are unique through a normalized `name_key` index, and a `@Version` column turns a concurrent lifecycle action into 409 instead of a lost update.
+- **Pagination:** opaque keyset cursors (base64url JSON of the last row's sort key): `(name, id)` for tenants, `(at, id)` newest first for audit events, each backed by an index.
+- **Errors:** RFC 9457 Problem Details with the mock's statuses, titles and messages (400/401/403/404/409/422).
+- **Tests:** domain unit tests (shared fixture); `*IT` integration tests against MySQL in Testcontainers, where every response is validated against `openapi.yaml` (status documented, body matches the schema); `ParityIT` repeats the MSW handler test scenarios. CI also builds the Docker image and smoke-tests `docker compose up`.
+
+Optional after that (M9): Kubernetes manifests (kind) with health probes and Actuator metrics.
 
 ---
 
@@ -322,6 +339,6 @@ Optional after that: Kubernetes manifests (kind) with health probes and Actuator
   - lint, typecheck and test for all TS packages;
   - web build;
   - ruff + pytest for `services/ai`;
-  - later, `./mvnw verify` for `tenant-api`.
+  - `./mvnw verify` for `tenant-api` (unit, Testcontainers, contract) and a Docker Compose smoke test.
 - **Deploy** (`deploy.yml`, on main): build web with `VITE_API_MODE=mock` and `VITE_AI_MODE=mock`, base `/outlay-admin/`, copy `index.html` to `404.html` for SPA routing, and register the MSW worker with the base path. Publishes to GitHub Pages.
 - **Docs:** README in English with a one-paragraph pitch, demo link + GIF, an architecture diagram, how to run it, links to the decisions/ADRs and to the eval report, and a "what I'd do next" section.
